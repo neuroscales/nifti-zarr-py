@@ -1,11 +1,23 @@
-# NIfTI-Zarr draft specification
+# Example implementation of the nifti-zarr specification in Python
 
-## Abstract
-This document contains _draft_ nifti-zarr specifications for storing neuroimaging data in the cloud.
+Convert a nifti file to a nifti-zarr storage.
 
-## References
+```python
+from niizarr import nii2zarr
+nii2zarr("path/to/nifti.nii.gz", "s3://path/to/bucket")
+```
 
-* [__Zarr__](https://zarr.readthedocs.io) is a format for the storage of chunked, compressed, N-dimensional arrays inspired by HDF5, h5py and bcolz.
-* [__OME-NGFF__](https://ngff.openmicroscopy.org) (Next Generation File Format) is a format based on zarr for the storage of biomedical imaging data.
-* [__NIfTI__](https://nifti.nimh.nih.gov) (Neuroimaging Informatics Technology Initiative) is a single-file/single-resolution storage format for 3D+ neuroimaging data.
-* [__BIDS__](https://bids-specification.readthedocs.io) (Brain Imaging Data Structure) is a simple and intuitive way to organize and describe data.
+Convert a nifti-zarr storage to a nifti file. The pyramid level can be selected with `level=L`, where 0 is the
+base/finest level.
+
+```python
+from niizarr import zarr2nii
+zarr2nii("s3://path/to/bucket", "path/to/nifti.nii.gz", level=0)
+```
+
+Load a nifti-zarr into a `nibabel.Nifti1Image` object.
+
+```python
+from niizarr import zarr2nii
+nivol = zarr2nii("s3://path/to/bucket", level=0)
+```
