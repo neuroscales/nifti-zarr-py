@@ -18,15 +18,9 @@ from ._header import (
     bin2nii, get_magic_string, SYS_BYTEORDER, JNIFTI_ZARR,
     SYS_BYTEORDER_SWAPPED
 )
-
-# If fsspec available, use fsspec
-try:
-    import fsspec
-
-    open = fsspec.open
-except (ImportError, ModuleNotFoundError):
-    fsspec = None
-
+from ._compat import (
+    open, fsspec, _make_compressor
+)
 
 def nii2json(header, extensions=False):
     """
