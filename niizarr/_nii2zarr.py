@@ -5,7 +5,6 @@ import math
 import re
 import sys
 
-import numcodecs
 import numpy as np
 import zarr
 import zarr.codecs
@@ -137,24 +136,6 @@ def nii2json(header, extensions=False):
 
     return jsonheader
 
-
-def _make_compressor(name, zarr_version, **prm):
-    if not isinstance(name, str):
-        return name
-    name = name.lower()
-    if name == 'blosc':
-        if zarr_version == 3:
-            Compressor = zarr.codecs.BloscCodec
-        elif zarr_version == 2:
-            Compressor = numcodecs.Blosc
-    elif name == 'zlib':
-        if zarr_version == 3:
-            Compressor = zarr.codecs.ZstdCodec
-        elif zarr_version == 2:
-            Compressor = numcodecs.Zlib
-    else:
-        raise ValueError('Unknown compressor', name)
-    return Compressor(**prm)
 
 
 def _make_pyramid3d(

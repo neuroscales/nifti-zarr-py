@@ -5,6 +5,8 @@ import warnings
 import numpy as np
 from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header)
 
+from ._compat import (_swap_header)
+
 SYS_BYTEORDER = '<' if sys.byteorder == 'little' else '>'
 SYS_BYTEORDER_SWAPPED = '>' if SYS_BYTEORDER == '<' else '<'
 
@@ -340,7 +342,7 @@ def try_header_version(buffer, version=1):
     byteorder_swapped = False
     header = np.frombuffer(buffer, dtype=HEADER_TYPE, count=1)[0]
     if header['sizeof_hdr'] != HEADER_SIZE:
-        header = header.view(header.dtype.newbyteorder())
+        header = _swap_header(header)
         byteorder_swapped = True
         if header['sizeof_hdr'] != HEADER_SIZE:
             return None
