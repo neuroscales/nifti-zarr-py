@@ -350,7 +350,7 @@ def try_header_version(buffer, version=1):
     return header, byteorder_swapped
 
 
-def bin2nii(buffer, check_swapped=False):
+def bin2nii(buffer):
     """
     Parameters
     ----------
@@ -367,8 +367,6 @@ def bin2nii(buffer, check_swapped=False):
         result = try_header_version(buffer, v)
         if result:
             header, byteorder_swapped = result
-            if check_swapped:
-                return header, byteorder_swapped
             return header
     raise ValueError('Is this a nifti header?')
 
@@ -377,25 +375,6 @@ def validate_magic(header, version):
     magic_string = get_magic_string(header)
     if magic_string not in (f"n+{version}", f"ni{version}"):
         warnings.warn(f"Magic String {magic_string} does not match NIFTI version {version}")
-
-
-# def get_header_version(buffer):
-#     for v in (1, 2):
-#         header = try_header_version(buffer, v)
-#         if header:
-#             return v
-#     raise ValueError('Is this a nifti header?')
-#
-# def bin2nib(buffer):
-#     version = get_header_version(buffer)
-#     if version == 1:
-#         NiftiHeader = Nifti1Header
-#         NiftiImage = Nifti1Image
-#     elif version==2:
-#         NiftiHeader = Nifti2Header
-#         NiftiImage = Nifti2Image
-#     else:
-#         raise ValueError(f"Unsupported Nifti version {version}")
 
 
 def get_nibabel_klass(header):
