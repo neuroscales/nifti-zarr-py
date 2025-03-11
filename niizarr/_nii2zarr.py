@@ -4,11 +4,13 @@ import json
 import math
 import re
 import sys
-from typing import Literal, Union, List, Optional
+from typing import Literal, Union, List, Optional, Callable, Generator, Any, Tuple
 
 import numpy as np
 import zarr.storage
-from nibabel import Nifti1Image, load
+import nibabel as nib
+from nibabel.nifti1 import Nifti1Header, Nifti1Image
+from nibabel.nifti2 import Nifti2Header, Nifti2Image
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._compat import (
@@ -21,21 +23,21 @@ from ._header import (
 )
 
 
-def nii2json(header, extensions=False):
+def nii2json(header: Union[Nifti1Header, Nifti2Header], extensions: bool = False) -> dict:
     """
-    Convert a nifti header to JSON
+    Convert a nifti header to a JSON serializable dictionary.
 
     Parameters
     ----------
-    header : np.array[HEADERTYPE1 or HEADERTYPE2]
-        Nifti header in binary form
-    extensions: bool, optional
-        If extensions present in this nifti file
+    header : Nifti1Header | Nifti2Header
+        Nifti header object.
+    extensions : bool, optional
+        Whether nifti extensions are present.
+
     Returns
     -------
-    header : dict
-        Nifti header in JSON form
-
+    dict
+        Nifti header in JSON form following JNIfTI specification.
     """
     header = header.copy()
 
@@ -138,9 +140,33 @@ def nii2json(header, extensions=False):
 
 
 def _make_pyramid3d(
-        data3d, nb_levels, pyramid_fn=pyramid_gaussian, label=False,
-        no_pyramid_axis=None,
-):
+        data3d: np.ndarray,
+        nb_levels: int,
+        pyramid_fn: Callable = pyramid_gaussian,
+        label: bool = False,
+        no_pyramid_axis: Optional[Union[str, int]] = None,
+) -> Generator[np.ndarray, None, None]:
+    """
+    Compute a 3D image pyramid from a given data volume.
+
+    Parameters
+    ----------
+    data3d : np.ndarray
+        3D numpy array representing the volume.
+    nb_levels : int
+        Number of pyramid levels to compute.
+    pyramid_fn : Callable, optional
+        Function to generate pyramid levels.
+    label : bool, optional
+        Whether the data is a label volume.
+    no_pyramid_axis : Optional[Union[str, int]], optional
+        The axis that should not be downsampled.
+
+    Yields
+    ------
+    np.ndarray
+        The pyramid level as a numpy array.
+    """
     no_pyramid_axis = {
         'x': 2,
         'y': 1,
@@ -183,8 +209,8 @@ def _make_pyramid3d(
 def write_ome_metadata(
         omz: zarr.Group,
         axes: List[str],
-        space_scale: Union[float, List[float]] = 1,
-        time_scale: float = 1,
+        space_scale: Union[float, List[float]] = 1.0,
+        time_scale: float = 1.0,
         space_unit: str = "micrometer",
         time_unit: str = "second",
         name: str = "",
@@ -199,8 +225,8 @@ def write_ome_metadata(
 
     Parameters
     ----------
-    path : str | PathLike
-        Path to parent Zarr.
+    omz : zarr.Group
+        Zarr group to write metadata
     axes : list[str]
         Name of each dimension, in Zarr order (t, c, z, y, x)
     space_scale : float | list[float]
@@ -209,7 +235,7 @@ def write_ome_metadata(
         Time scale
     space_unit : str
         Unit of spatial scale (assumed identical across dimensions)
-    space_time : str
+    time_unit : str
         Unit of time scale
     name : str
         Name attribute
@@ -219,8 +245,6 @@ def write_ome_metadata(
         window of that size was used.
     levels : int
         Number of existing levels. Default: find out automatically.
-    zarr_version : {2, 3} | None
-        Zarr version. If `None`, guess from existing zarr array.
 
     """
     # Read shape at each pyramid level
@@ -359,55 +383,50 @@ def write_ome_metadata(
 
 
 def nii2zarr(
-        inp, out, *,
-        chunk=64,
-        chunk_channel=1,
-        chunk_time=1,
-        nb_levels=-1,
-        method='gaussian',
-        label=None,
-        no_time=False,
-        no_pyramid_axis=None,
-        fill_value=None,
-        compressor='blosc',
-        compressor_options={},
+        inp: Union[Nifti1Image, Nifti2Image, Any],
+        out: Union[str, Any],
+        *,
+        chunk: Union[int, Tuple[int]] = 64,
+        chunk_channel: int = 1,
+        chunk_time: int = 1,
+        nb_levels: int = -1,
+        method: Literal['gaussian', 'laplacian'] = 'gaussian',
+        label: Optional[bool] = None,
+        no_time: bool = False,
+        no_pyramid_axis: Optional[Union[str, int]] = None,
+        fill_value: Optional[Union[int, float, complex]] = None,
+        compressor: Literal['blosc', 'zlib'] = 'blosc',
+        compressor_options: dict = {},
         zarr_version: Literal[2, 3] = 2,
         ome_version: Literal["0.4", "0.5"] = "0.4",
-):
+) -> None:
     """
-    Convert a nifti file to nifti-zarr
+    Convert a nifti file to nifti-zarr.
 
     Parameters
     ----------
-    inp : nib.Nifti1Image or file_like
-        Input nifti image
-    out : zarr.Store or zarr.Group or path
-        Output zarr object/path. If object, it must be opened with "w" capability
-
-    Other Parameters
-    ----------------
-    chunk : [list of [tuple of]] int
-        Chunk size of the spatial dimensions, per x/y/z, per level.
-        * The inner tuple allows different chunk sizes to be used along
-          each dimension.
-        * The outer list allows different chunk sizes to be used at
-          different pyramid levels.
-    chunk_channel : int
+    inp : Nifti1Image | Nifti12mage | file-like
+        Input nifti image.
+    out : zarr.Store, zarr.Group or path
+        Output zarr object/path. If object, it must be opened with "w" capability.
+    chunk : int or tuple of int, optional
+        Chunk size for spatial dimensions.
+        The tuple allows different chunk sizes to be used along each dimension.
+    chunk_channel : int, optional
         Chunk size of the channel dimension. If 0, combine all channels
         in a single chunk.
-    chunk_time : int
-        Chunk size of the time dimension. If 0, combine all timepoints
+    chunk_time : int, optional
+        Chunk size for the time dimension. If 0, combine all timepoints
         in a single chunk.
-    nb_levels : int
-        Number of levels in the pyramid.
+    nb_levels : int, optional
+        Number of pyramid levels to generate.
         If -1, make all possible levels until the level can be fit into
         one chunk.
-        Default: -1
     method : {'gaussian', 'laplacian'}
         Method used to compute the pyramid.
-    label : bool
+    label : bool, optional
         Is this is a label volume?  If `None`, guess from intent code.
-    no_time : bool
+    no_time : bool, optional
         If True, there is no time dimension so the 4th dimension
         (if it exists) should be interpreted as the channel dimensions.
     no_pyramid_axis : {'x', 'y', 'z'}
@@ -417,19 +436,23 @@ def nii2zarr(
         Value to use for missing tiles
     compressor : {'blosc', 'zlib'}
         Compression to use
-    compressor_options : dict
-        Compressor options
-    zarr_version : {2, 3}
-        Zarr format version
-    ome_version : {0.4, 0.5}
-        OME-Zarr version
+    compressor_options : dict, optional
+        Options for the compressor.
+    zarr_version : {2, 3}, optional
+        Zarr format version.
+    ome_version : {"0.4", "0.5"}, optional
+        OME-Zarr version.
+
+    Returns
+    -------
+    None
     """
     # Open nifti image with nibabel
-    if not isinstance(inp, Nifti1Image):
+    if not isinstance(inp, (Nifti1Image, Nifti2Image)):
         if hasattr(inp, 'read'):
             inp = Nifti1Image.from_stream(inp)
         else:
-            inp = load(inp)
+            inp = nib.load(inp)
 
     out = _open_zarr(out, zarr_version=zarr_version)
 
@@ -582,7 +605,7 @@ def nii2zarr(
 
 
 def cli(args=None):
-    """Command-line entrypoint"""
+    """    Command-line entrypoint"""
     parser = argparse.ArgumentParser(
         'nii2zarr', description='Convert nifti to nifti-zarr')
     parser.add_argument(
