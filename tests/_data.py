@@ -106,6 +106,8 @@ def compare_zarr_archives(path1, path2):
 
                     if not compare_json_objects(json1, json2):
                         print(f"Mismatch found in {file_name} at {relative_path}")
+                        print(json1)
+                        print(json2)
                         return False
             else:
                 # If one file exists and the other does not
