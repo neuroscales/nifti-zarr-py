@@ -97,7 +97,7 @@ def _create_default_header(inp, inp0, ome):
     niiheader.set_qform(affine)
     niiheader.set_sform(affine)
     niiheader.set_xyzt_units("mm", "sec")
-    return NiftiImage, niiheader
+    return niiheader, NiftiImage
 
 
 def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
@@ -157,18 +157,15 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
     # --------------------------
 
     if not is_group or 'nifti' not in inp:
-        NiftiImage, niiheader = _create_default_header(inp, inp0, ome)
+        niiheader, NiftiImage = _create_default_header(inp, inp0, ome)
     else:
-        # TODO: As we use nibabel to directly loads from bytes, we can simply the steps
-        #       We only need to check which version but not load the actual content
-        # read binary header
         header = bin2nii(np.asarray(inp['nifti']).tobytes())
         NiftiHeader, NiftiImage = get_nibabel_klass(header)
 
         niiheader = NiftiHeader.from_fileobj(
             io.BytesIO(np.asarray(inp['nifti']).tobytes()),
             check=False)
-
+    
     # -----------------------------------
     # create affine at current resolution
     # -----------------------------------
