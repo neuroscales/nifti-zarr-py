@@ -516,7 +516,9 @@ def nii2zarr(
 
     # if chunk is a list, we use the first tuple,
     # otherwise the logic might be too complicated
-    chunksize = np.array((chunk,) * 3 if isinstance(chunk, int) else chunk[0])
+    # TODO: this can be optimized with the later chunk size determination,
+
+    chunksize = np.array((chunk,) * 3 if isinstance(chunk, int) else chunk)
     nxyz = np.array(data.shape[-3:])
 
     if nb_levels == -1:
