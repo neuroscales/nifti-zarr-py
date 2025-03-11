@@ -1,6 +1,8 @@
 import argparse
 import io
 import sys
+from os import PathLike
+from typing import Any, Literal, Optional, Union
 
 import dask.array
 import numpy as np
@@ -10,7 +12,7 @@ from nibabel.nifti1 import Nifti1Image, Nifti1Header
 from nibabel.nifti2 import Nifti2Image, Nifti2Header
 
 from ._compat import _open_zarr
-from ._header import bin2nii, get_nibabel_klass, SYS_BYTEORDER
+from ._header import bin2nii, get_nibabel_klass
 from ._units import convert_unit, ome_valid_units
 
 
@@ -100,13 +102,19 @@ def _create_default_header(inp, inp0, ome):
     return niiheader, NiftiImage
 
 
-def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
+def zarr2nii(
+        inp: Union[str, PathLike, Any],
+        out: Optional[Union[str, PathLike]] = None,
+        level: Union[int, str] = 0,
+        mode: Literal["r", "w", "a"] = "r",
+        **store_opt
+) -> Union[Nifti1Image, Nifti2Image]:
     """
     Convert a nifti-zarr to nifti
 
     Parameters
     ----------
-    inp : zarr.Store or zarr.Group or path
+    inp : zarr.Store | zarr.Group | zarr.Array | path
         Output zarr object
     out : path or file_like, optional
         Path to output file. If not provided, do not write a file.
@@ -165,7 +173,7 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
         niiheader = NiftiHeader.from_fileobj(
             io.BytesIO(np.asarray(inp['nifti']).tobytes()),
             check=False)
-    
+
     # -----------------------------------
     # create affine at current resolution
     # -----------------------------------
@@ -213,15 +221,15 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
         niiheader.set_qform(qform, qcode)
         niiheader.set_sform(sform, scode)
 
-    # -------------------------------
-    # reorder/reshape array as needed
-    # -------------------------------
-
     # load/map array with dask
     if is_group:
         array = dask.array.from_zarr(inp[f'{level}'])
     else:
         array = dask.array.from_zarr(inp)
+
+    # -------------------------------
+    # reorder/reshape array as needed
+    # -------------------------------
 
     # get zarr axes
     if ome:

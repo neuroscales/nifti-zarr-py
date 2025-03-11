@@ -1,5 +1,5 @@
 import warnings
-from typing import Literal, Optional, Union
+from typing import Literal, Optional, Union, Any
 
 import numpy as np
 import zarr
@@ -10,6 +10,7 @@ from packaging.version import parse as V
 open = open
 try:
     import fsspec
+
     open = fsspec.open
 except (ImportError, ModuleNotFoundError):
     fsspec = None
@@ -20,7 +21,11 @@ else:
     pyzarr_version = 3
 
 
-def _make_compressor(name, zarr_version, **kwargs):
+def _make_compressor(
+        name: Union[str, int],
+        zarr_version: Literal[2, 3],
+        **kwargs: dict
+) -> Any:
     if not isinstance(name, str):
         return name
     name = name.lower()
@@ -45,7 +50,7 @@ def _make_compressor(name, zarr_version, **kwargs):
     return Compressor(**kwargs)
 
 
-def _swap_header(header):
+def _swap_header(header: np.ndarray) -> np.ndarray:
     """
     Byteswap the given header array based on the installed numpy version.
 
@@ -67,15 +72,19 @@ def _swap_header(header):
         return header.view(header.dtype.newbyteorder())
 
 
-def _open_zarr(out,
-               mode: Literal["r", "w"] = "w",
-               store_opt: Optional[dict] = None,
-               **kwargs):
+def _open_zarr(
+        out: Union[str, Any],
+        mode: Literal["r", "w"] = "w",
+        store_opt: Optional[dict] = None,
+        **kwargs: dict
+) -> Union[zarr.Group, zarr.Array]:
     store_opt = store_opt or {}
     if pyzarr_version == 3:
         StoreLike = zarr.storage.StoreLike
         FsspecStore = zarr.storage.FsspecStore
         LocalStore = zarr.storage.LocalStore
+        if "zarr_version" in kwargs:
+            kwargs["zarr_format"] = kwargs.pop("zarr_version")
     else:
         StoreLike = zarr.storage.Store
         FsspecStore = zarr.storage.FSStore
@@ -100,10 +109,24 @@ def _open_zarr(out,
     return out
 
 
-def _create_array(out,
-                  name: Union[int, str],
-                  *args,
-                  **kwargs):
+def _create_array(
+        out: zarr.Group,
+        name: Union[int, str],
+        *args: list,
+        **kwargs: dict
+) -> None:
+    """
+    Create an array in the given store 'out' with the specified 'name' and options.
+
+    Parameters:
+        out : zarr.Group
+            The zarr group where the array will be created.
+        name :int | str
+            The name of the array.
+
+    Raises:
+        ValueError: If 'name' is empty.
+    """
     if not name:
         raise ValueError("Array name is required")
     name = str(name)

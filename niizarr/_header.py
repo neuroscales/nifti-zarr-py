@@ -1,6 +1,7 @@
 import re
 import sys
 import warnings
+from typing import Literal, Tuple
 
 import numpy as np
 from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header)
@@ -127,7 +128,8 @@ DTYPES = Recoder([
     (16, "single"),  # 32-bit float
     (32, "complex64"),  # 64-bit complex (2x 32-bit floats)
     (64, "double"),  # 64-bit float (double precision)
-    (128, (("r", "uint8"), ("g", "uint8"), ("b", "uint8"))),  # 3x 8-bit unsigned char (RGB24)
+    (128, (("r", "uint8"), ("g", "uint8"), ("b", "uint8"))),
+    # 3x 8-bit unsigned char (RGB24)
     (256, "int8"),  # signed char (8 bits)
     (512, "uint16"),  # unsigned short (16 bits)
     (768, "uint32"),  # unsigned int (32 bits)
@@ -136,7 +138,8 @@ DTYPES = Recoder([
     (1536, "double128"),  # 128-bit float (long double)
     (1792, "complex128"),  # 128-bit complex (2x 64-bit floats)
     (2048, "complex256"),  # 256-bit complex (2x 128-bit floats)
-    (2304, (("r", "uint8"), ("g", "uint8"), ("b", "uint8"), ("a", "uint8"))),  # 4x 8-bit unsigned char (RGBA32)
+    (2304, (("r", "uint8"), ("g", "uint8"), ("b", "uint8"), ("a", "uint8"))),
+    # 4x 8-bit unsigned char (RGBA32)
 ])
 
 UNITS = Recoder([
@@ -159,7 +162,8 @@ JNIFTI_ZARR = Recoder([
     ("f4", "single"),
     ("c8", "complex64"),
     ("f8", "double"),
-    ((("r", "u1"), ("g", "u1"), ("b", "u1")), (("r", "uint8"), ("g", "uint8"), ("b", "uint8"))),
+    ((("r", "u1"), ("g", "u1"), ("b", "u1")),
+     (("r", "uint8"), ("g", "uint8"), ("b", "uint8"))),
     ("i1", "int8"),
     ("u2", "uint16"),
     ("u4", "uint32"),
@@ -325,11 +329,18 @@ SLICEORDERS = Recoder([
 ])
 
 
-def get_magic_string(header):
+def get_magic_string(header: np.ndarray) -> str:
     return re.sub(r'[\x00-\x1f]+', '', header['magic'].decode())
 
 
-def try_header_version(buffer, version=1):
+def validate_magic(header: np.ndarray, version: Literal[1, 2]) -> None:
+    magic_string = get_magic_string(header)
+    if magic_string not in (f"n+{version}", f"ni{version}"):
+        warnings.warn(
+            f"Magic String {magic_string} does not match NIFTI version {version}")
+
+
+def try_header_version(buffer: bytes, version: Literal[1, 2] = 1):
     if version == 1:
         HEADER_TYPE = HEADERTYPE1
         HEADER_SIZE = NIFTI_1_HEADER_SIZE
@@ -350,7 +361,7 @@ def try_header_version(buffer, version=1):
     return header, byteorder_swapped
 
 
-def bin2nii(buffer):
+def bin2nii(buffer: bytes) -> np.ndarray:
     """
     Parameters
     ----------
@@ -368,16 +379,11 @@ def bin2nii(buffer):
     raise ValueError('Is this a nifti header?')
 
 
-def validate_magic(header, version):
-    magic_string = get_magic_string(header)
-    if magic_string not in (f"n+{version}", f"ni{version}"):
-        warnings.warn(f"Magic String {magic_string} does not match NIFTI version {version}")
-
-
-def get_nibabel_klass(header):
+def get_nibabel_klass(header: np.ndarray) -> Tuple[type, type]:
     if header['sizeof_hdr'] == NIFTI_1_HEADER_SIZE:
         return Nifti1Header, Nifti1Image
     elif header['sizeof_hdr'] == NIFTI_2_HEADER_SIZE:
         return Nifti2Header, Nifti2Image
     else:
-        raise ValueError(f"sizeof_hdr {header['sizeof_hdr']} does not match any Nifti header specification")
+        raise ValueError(
+            f"sizeof_hdr {header['sizeof_hdr']} does not match any Nifti header specification")

@@ -6,9 +6,9 @@ import re
 import sys
 from typing import Literal, Union, List, Optional, Callable, Generator, Any, Tuple
 
+import nibabel as nib
 import numpy as np
 import zarr.storage
-import nibabel as nib
 from nibabel.nifti1 import Nifti1Header, Nifti1Image
 from nibabel.nifti2 import Nifti2Header, Nifti2Image
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
@@ -23,7 +23,8 @@ from ._header import (
 )
 
 
-def nii2json(header: Union[Nifti1Header, Nifti2Header], extensions: bool = False) -> dict:
+def nii2json(header: Union[Nifti1Header, Nifti2Header],
+             extensions: bool = False) -> dict:
     """
     Convert a nifti header to a JSON serializable dictionary.
 
