@@ -135,6 +135,22 @@ def _create_array(
         compressor = kwargs.pop("compressor")
     else:
         compressor = kwargs.pop("compressors", None)
+
+    if "dimension_separator" in kwargs and pyzarr_version == 3:
+        dimension_separator = kwargs.pop("dimension_separator")
+        if dimension_separator == '.' and out.metadata.zarr_format == 2:
+            pass
+        elif dimension_separator == '/' and out.metadata.zarr_format == 3:
+            pass 
+        else:
+            from zarr.core.chunk_key_encodings import ChunkKeyEncoding, ChunkKeyEncodingParams
+            dimension_separator = ChunkKeyEncoding.from_dict(
+                ChunkKeyEncodingParams(
+                    name="default" if out.metadata.zarr_format == 3 else "v2", 
+                    separator=dimension_separator))
+
+        kwargs["chunk_key_encoding"] = dimension_separator
+
     if pyzarr_version == 3:
         data = kwargs.pop("data", None)
         out.create_array(name=name, **kwargs, compressors=compressor)

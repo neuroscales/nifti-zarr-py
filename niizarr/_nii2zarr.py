@@ -554,7 +554,7 @@ def nii2zarr(
     chunk = chunk + chunk[-1:] * max(0, nb_levels - len(chunk))
     chunk = [{
         'chunks': c,
-        # 'dimension_separator': r'/',
+        'dimension_separator': '/',
         'order': 'C',
         'dtype': data_type,
         'fill_value': fill_value,
@@ -580,7 +580,7 @@ def nii2zarr(
         dtype='u1',
         compressors=None,
         fill_value=None,
-        # dimension_separator='/',
+        dimension_separator='/',
         overwrite=True,
     )
     out['nifti'][:] = bin_data
