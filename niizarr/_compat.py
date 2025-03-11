@@ -1,27 +1,15 @@
 import warnings
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
 import numpy as np
 import zarr
 from numpy.lib import NumpyVersion
 from packaging.version import parse as V
 
-if V(np.__version__) >= V("2.0"):
-    # New code path for newer numpy versions
-    def my_function():
-        # code using new numpy features
-        print("Using new numpy features")
-else:
-    # Legacy code path
-    def my_function():
-        # code that works with older numpy versions
-        print("Using legacy numpy features")
-
 # If fsspec available, use fsspec
 open = open
 try:
     import fsspec
-
     open = fsspec.open
 except (ImportError, ModuleNotFoundError):
     fsspec = None
@@ -84,10 +72,10 @@ def _swap_header(header):
         return header.view(header.dtype.newbyteorder())
 
 
-def _open_zarr_group(out,
-                     mode: Literal["r", "w"] = "w",
-                     store_opt: Optional[dict] = None,
-                     **kwargs):
+def _open_zarr(out,
+               mode: Literal["r", "w"] = "w",
+               store_opt: Optional[dict] = None,
+               **kwargs):
     store_opt = store_opt or {}
     if pyzarr_version == 3:
         StoreLike = zarr.storage.StoreLike
@@ -118,11 +106,13 @@ def _open_zarr_group(out,
 
 
 def _create_array(out,
-                  name=None,
+                  name: Union[int, str],
                   *args,
                   **kwargs):
     if not name:
         raise ValueError("Array name is required")
+    name = str(name)
+
     if "compressor" in kwargs:
         compressor = kwargs.pop("compressor")
     else:

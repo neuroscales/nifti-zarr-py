@@ -12,7 +12,7 @@ from nibabel import Nifti1Image, load
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._compat import (
-    _make_compressor, _open_zarr_group, _create_array
+    _make_compressor, _open_zarr, _create_array
 )
 from ._header import (
     UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS,
@@ -431,7 +431,7 @@ def nii2zarr(
         else:
             inp = load(inp)
 
-    out = _open_zarr_group(out, zarr_version=zarr_version)
+    out = _open_zarr(out, zarr_version=zarr_version)
 
     if no_time and len(inp.shape) > 3:
         inp = Nifti1Image(inp.dataobj[:, :, :, None], inp.affine, inp.header)
@@ -537,12 +537,6 @@ def nii2zarr(
         'compressors': compressor,
     } for c in chunk]
 
-    # Write zarr arrays
-    # write_multiscale(
-    #     data, out,
-    #     axes=axes,
-    #     storage_options=chunk
-    # )
     for i, d in enumerate(data):
         _create_array(out, str(i), shape=d.shape, **chunk[i])
         out[str(i)][:] = d

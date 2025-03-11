@@ -9,7 +9,7 @@ from nibabel import (save, load)
 from nibabel.nifti1 import Nifti1Image, Nifti1Header
 from nibabel.nifti2 import Nifti2Image, Nifti2Header
 
-from ._compat import _open_zarr_group
+from ._compat import _open_zarr
 from ._header import bin2nii, get_nibabel_klass, SYS_BYTEORDER
 from ._units import convert_unit, ome_valid_units
 
@@ -78,7 +78,7 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
         Mapped output file _or_ Nifti object whose dataobj is a dask array
     """
 
-    inp = _open_zarr_group(inp, mode=mode, store_opt=store_opt)
+    inp = _open_zarr(inp, mode=mode, store_opt=store_opt)
 
     # ----------------
     # prepare metadata
@@ -114,51 +114,8 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
     # --------------------------
 
     if not is_group or 'nifti' not in inp:
-        # not a nifti-zarr -> create nifti header on the fly
-        if any(x > 2 ** 15 for x in inp['0'].shape):
-            NiftiHeader, NiftiImage = Nifti2Header, Nifti2Image
-        else:
-            NiftiHeader, NiftiImage = Nifti1Header, Nifti1Image
-        header = niiheader = NiftiHeader()
-
-        if ome:
-            affine = _ome2affine(ome)
-
-            # make shape
-            names = [axis["name"] for axis in ome[0]["axes"]]
-            shape = {name: inp0.shape[i] for i, name in enumerate(names)}
-            shape = [shape.get(name, 1) for name in "xyztc"]
-            if "c" not in names:
-                shape = shape[:4]
-                if "t" not in names:
-                    shape = shape[:3]
-                    if "z" not in names:
-                        shape = shape[:2]
-                        if "y" not in names:
-                            shape = shape[:1]
-                            if "x" not in names:
-                                shape = shape[:0]
-
-        else:
-            # not an OME zarr -- assume order [t, c, z, y, x] nonetheless
-            affine = np.eye(4)
-            shape = list(inp0.shape)[::-1]
-            shape_dict = {k: v for k, v in zip("xyzct", shape)}
-            shape = list(shape_dict.values()) + shape[5:]
-            if len(shape) > 4:
-                # permute c <-> t
-                shape[3], shape[4] = shape[4], shape[3]
-
-        # set nifti fields
-        niiheader.set_data_shape(shape)
-        niiheader.set_data_dtype(inp0.dtype)
-        niiheader.set_qform(affine)
-        niiheader.set_sform(affine)
-        niiheader.set_xyzt_units("mm", "sec")
-        byte_swapped = False
-
+        NiftiImage, niiheader = _create_default_header(inp, inp0, ome)
     else:
-
         # TODO: As we use nibabel to directly loads from bytes, we can simply the steps
         #       We only need to check which version but not load the actual content
         # read binary header
@@ -168,8 +125,6 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
         niiheader = NiftiHeader.from_fileobj(
             io.BytesIO(np.asarray(inp['nifti']).tobytes()),
             check=False)
-        # TODO: this variable seems no longer used
-        byte_swapped = niiheader.endianness != SYS_BYTEORDER
 
     # -----------------------------------
     # create affine at current resolution
@@ -266,6 +221,49 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
             img = load(out)
 
     return img
+
+
+def _create_default_header(inp, inp0, ome):
+    # not a nifti-zarr -> create nifti header on the fly
+    if any(x > 2 ** 15 for x in inp['0'].shape):
+        NiftiHeader, NiftiImage = Nifti2Header, Nifti2Image
+    else:
+        NiftiHeader, NiftiImage = Nifti1Header, Nifti1Image
+    header = niiheader = NiftiHeader()
+    if ome:
+        affine = _ome2affine(ome)
+
+        # make shape
+        names = [axis["name"] for axis in ome[0]["axes"]]
+        shape = {name: inp0.shape[i] for i, name in enumerate(names)}
+        shape = [shape.get(name, 1) for name in "xyztc"]
+        if "c" not in names:
+            shape = shape[:4]
+            if "t" not in names:
+                shape = shape[:3]
+                if "z" not in names:
+                    shape = shape[:2]
+                    if "y" not in names:
+                        shape = shape[:1]
+                        if "x" not in names:
+                            shape = shape[:0]
+
+    else:
+        # not an OME zarr -- assume order [t, c, z, y, x] nonetheless
+        affine = np.eye(4)
+        shape = list(inp0.shape)[::-1]
+        shape_dict = {k: v for k, v in zip("xyzct", shape)}
+        shape = list(shape_dict.values()) + shape[5:]
+        if len(shape) > 4:
+            # permute c <-> t
+            shape[3], shape[4] = shape[4], shape[3]
+    # set nifti fields
+    niiheader.set_data_shape(shape)
+    niiheader.set_data_dtype(inp0.dtype)
+    niiheader.set_qform(affine)
+    niiheader.set_sform(affine)
+    niiheader.set_xyzt_units("mm", "sec")
+    return NiftiImage, niiheader
 
 
 def cli(args=None):
