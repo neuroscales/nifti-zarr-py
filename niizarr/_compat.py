@@ -1,10 +1,10 @@
 import warnings
+from typing import Literal, Optional
 
-from typing import Literal
-from packaging.version import parse as V
 import numpy as np
 import zarr
 from numpy.lib import NumpyVersion
+from packaging.version import parse as V
 
 if V(np.__version__) >= V("2.0"):
     # New code path for newer numpy versions
@@ -17,11 +17,11 @@ else:
         # code that works with older numpy versions
         print("Using legacy numpy features")
 
-
 # If fsspec available, use fsspec
 open = open
 try:
     import fsspec
+
     open = fsspec.open
 except (ImportError, ModuleNotFoundError):
     fsspec = None
@@ -30,6 +30,7 @@ if V(zarr.__version__) < V("3"):
     pyzarr_version = 2
 else:
     pyzarr_version = 3
+
 
 def check_zarr_version(version):
     if version == 3 and V(zarr.__version__) < V("3"):
@@ -61,7 +62,6 @@ def _make_compressor(name, zarr_version, **kwargs):
     return Compressor(**kwargs)
 
 
-
 def _swap_header(header):
     """
     Byteswap the given header array based on the installed numpy version.
@@ -85,8 +85,8 @@ def _swap_header(header):
 
 
 def _open_zarr_group(out,
-                     mode: Literal["r","w"]="w",
-                     store_opt: dict | None = None,
+                     mode: Literal["r", "w"] = "w",
+                     store_opt: Optional[dict] = None,
                      **kwargs):
     store_opt = store_opt or {}
     if pyzarr_version == 3:
@@ -118,7 +118,7 @@ def _open_zarr_group(out,
 
 
 def _create_array(out,
-                  name = None,
+                  name=None,
                   *args,
                   **kwargs):
     if not name:
@@ -135,4 +135,3 @@ def _create_array(out,
         return
     if pyzarr_version == 2:
         out.create_dataset(name=name, **kwargs, compressor=compressor)
-

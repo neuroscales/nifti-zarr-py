@@ -4,22 +4,22 @@ import json
 import math
 import re
 import sys
-from typing import Literal
+from typing import Literal, Union, List, Optional
 
 import numpy as np
-import zarr
 import zarr.storage
 from nibabel import Nifti1Image, load
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
+from ._compat import (
+    _make_compressor, _open_zarr_group, _create_array
+)
 from ._header import (
     UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS,
     bin2nii, get_magic_string, SYS_BYTEORDER, JNIFTI_ZARR,
     SYS_BYTEORDER_SWAPPED
 )
-from ._compat import (
-    _make_compressor, _open_zarr_group, _create_array
-)
+
 
 def nii2json(header, extensions=False):
     """
@@ -137,7 +137,6 @@ def nii2json(header, extensions=False):
     return jsonheader
 
 
-
 def _make_pyramid3d(
         data3d, nb_levels, pyramid_fn=pyramid_gaussian, label=False,
         no_pyramid_axis=None,
@@ -183,15 +182,15 @@ def _make_pyramid3d(
 
 def write_ome_metadata(
         omz: zarr.Group,
-        axes: list[str],
-        space_scale: float | list[float] = 1,
+        axes: List[str],
+        space_scale: Union[float, List[float]] = 1,
         time_scale: float = 1,
         space_unit: str = "micrometer",
         time_unit: str = "second",
         name: str = "",
-        pyramid_aligns: str | int | list[str | int] = 2,
-        levels: int | None = None,
-        no_pool: int | None = None,
+        pyramid_aligns: Union[str, int, List[str], List[int]] = 2,
+        levels: Optional[int] = None,
+        no_pool: Optional[int] = None,
         multiscales_type: str = "",
         ome_version: Literal["0.4", "0.5"] = "0.4"
 ) -> None:
@@ -372,8 +371,8 @@ def nii2zarr(
         fill_value=None,
         compressor='blosc',
         compressor_options={},
-        zarr_version:Literal[2,3]=2,
-        ome_version:Literal["0.4", "0.5"] ="0.4",
+        zarr_version: Literal[2, 3] = 2,
+        ome_version: Literal["0.4", "0.5"] = "0.4",
 ):
     """
     Convert a nifti file to nifti-zarr
