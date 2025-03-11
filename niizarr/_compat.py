@@ -20,11 +20,6 @@ else:
     pyzarr_version = 3
 
 
-def check_zarr_version(version):
-    if version == 3 and V(zarr.__version__) < V("3"):
-        raise Exception("zarr version too low")
-
-
 def _make_compressor(name, zarr_version, **kwargs):
     if not isinstance(name, str):
         return name
