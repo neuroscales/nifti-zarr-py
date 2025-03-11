@@ -355,13 +355,10 @@ def bin2nii(buffer):
     Parameters
     ----------
     buffer : binary header data
-    check_swapped : bool
-        if true, return if the byte order is swapped
+
     Returns
     -------
     header : structure array of header
-    swapped : bool
-
     """
     for v in (1, 2):
         result = try_header_version(buffer, v)
