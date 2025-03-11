@@ -42,8 +42,8 @@ class Testnii2zarr(unittest.TestCase):
     def test_same_result_nifti1(self):
         written_zarr = op.join(self.temp_dir.name, "example4d.nii.zarr")
         nii2zarr(op.join(DATA, "example4d.nii.gz"), written_zarr, chunk=64)
-        self.assertTrue(
-            compare_zarr_archives(written_zarr, op.join(DATA, "example4d.nii.zarr")))
+        self.assertTrue(compare_zarr_archives(written_zarr,
+                                              op.join(DATA, "example4d.nii.zarr")))
         written_data = zarr.open(written_zarr)
         for layer in ('0', '1', 'nifti'):
             reference_data = np.load(
