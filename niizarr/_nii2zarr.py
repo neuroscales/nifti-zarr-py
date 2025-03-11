@@ -4,12 +4,13 @@ import json
 import math
 import re
 import sys
+from typing import Literal
 
 import numpy as np
 import zarr
 import zarr.codecs
 import zarr.storage
-from nibabel import Nifti1Image, load
+from nibabel import Nifti1Image, load, Nifti1Header
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._header import (
@@ -193,7 +194,7 @@ def write_ome_metadata(
         levels: int | None = None,
         no_pool: int | None = None,
         multiscales_type: str = "",
-        ome_version: str = "0.4"
+        ome_version: Literal["0.4", "0.5"] = "0.4"
 ) -> None:
     """
     Write OME metadata into Zarr.
@@ -372,8 +373,8 @@ def nii2zarr(
         fill_value=None,
         compressor='blosc',
         compressor_options={},
-        zarr_version=2,
-        ome_version="0.4",
+        zarr_version:Literal[2,3]=2,
+        ome_version:Literal["0.4", "0.5"] ="0.4",
 ):
     """
     Convert a nifti file to nifti-zarr
