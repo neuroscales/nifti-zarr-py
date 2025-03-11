@@ -9,17 +9,9 @@ from nibabel import (save, load)
 from nibabel.nifti1 import Nifti1Image, Nifti1Header
 from nibabel.nifti2 import Nifti2Image, Nifti2Header
 
+from ._compat import _open_zarr_group
 from ._header import bin2nii, get_nibabel_klass, SYS_BYTEORDER
 from ._units import convert_unit, ome_valid_units
-
-# If fsspec available, use fsspec
-try:
-    import fsspec
-
-    open = fsspec.open
-except (ImportError, ModuleNotFoundError):
-    fsspec = None
-
 
 def _ome2affine(ome, level=0):
     names = [axis["name"] for axis in ome[0]["axes"]]
@@ -85,17 +77,7 @@ def zarr2nii(inp, out=None, level=0, mode="r", **store_opt):
         Mapped output file _or_ Nifti object whose dataobj is a dask array
     """
 
-    # --------------
-    # Map input data
-    # --------------
-
-    if not isinstance(inp, (zarr.Group, zarr.Array)):
-        if not isinstance(inp, zarr.storage.StoreLike):
-            if fsspec:
-                inp = zarr.storage.FsspecStore(inp, **store_opt, mode=mode)
-            else:
-                inp = zarr.storage.LocalStore(inp, **store_opt)
-        inp = zarr.open(inp, mode=mode)
+    inp = _open_zarr_group(inp, mode=mode, store_opt=store_opt)
 
     # ----------------
     # prepare metadata

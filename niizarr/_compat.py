@@ -1,8 +1,10 @@
+import warnings
+
+from typing import Literal
 from packaging.version import parse as V
 import numpy as np
 import zarr
 from numpy.lib import NumpyVersion
-
 
 if V(np.__version__) >= V("2.0"):
     # New code path for newer numpy versions
@@ -24,6 +26,10 @@ try:
 except (ImportError, ModuleNotFoundError):
     fsspec = None
 
+if V(zarr.__version__) < V("3"):
+    pyzarr_version = 2
+else:
+    pyzarr_version = 3
 
 def check_zarr_version(version):
     if version == 3 and V(zarr.__version__) < V("3"):
@@ -76,3 +82,57 @@ def _swap_header(header):
         return header.newbyteorder()
     else:
         return header.view(header.dtype.newbyteorder())
+
+
+def _open_zarr_group(out,
+                     mode: Literal["r","w"]="w",
+                     store_opt: dict | None = None,
+                     **kwargs):
+    store_opt = store_opt or {}
+    if pyzarr_version == 3:
+        StoreLike = zarr.storage.StoreLike
+        FsspecStore = zarr.storage.FsspecStore
+        LocalStore = zarr.storage.LocalStore
+    else:
+        StoreLike = zarr.storage.Store
+        FsspecStore = zarr.storage.FSStore
+        LocalStore = zarr.storage.DirectoryStore
+        if "zarr_version" in kwargs:
+            if kwargs["zarr_version"] != pyzarr_version:
+                warnings.warn("zarr_version is ignored in pyzarr version 2")
+            kwargs.pop("zarr_version")
+
+    if isinstance(out, (zarr.Group, zarr.Array)):
+        return out
+
+    if not isinstance(out, StoreLike):
+        if fsspec:
+            out = FsspecStore(out, mode=mode, **store_opt)
+        else:
+            out = LocalStore(out, **store_opt)
+    if mode == "w":
+        out = zarr.group(store=out, overwrite=True, **kwargs)
+    else:
+        out = zarr.open(store=out, mode=mode, **kwargs)
+    return out
+
+
+def _create_array(out,
+                  name = None,
+                  *args,
+                  **kwargs):
+    if not name:
+        raise ValueError("Array name is required")
+    if "compressor" in kwargs:
+        compressor = kwargs.pop("compressor")
+    else:
+        compressor = kwargs.pop("compressors", None)
+    if pyzarr_version == 3:
+        data = kwargs.pop("data", None)
+        out.create_array(name=name, **kwargs, compressors=compressor)
+        if data:
+            out[name][:] = data
+        return
+    if pyzarr_version == 2:
+        out.create_dataset(name=name, **kwargs, compressor=compressor)
+

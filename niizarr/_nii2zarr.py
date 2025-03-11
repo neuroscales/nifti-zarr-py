@@ -8,9 +8,8 @@ from typing import Literal
 
 import numpy as np
 import zarr
-import zarr.codecs
 import zarr.storage
-from nibabel import Nifti1Image, load, Nifti1Header
+from nibabel import Nifti1Image, load
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._header import (
@@ -19,7 +18,7 @@ from ._header import (
     SYS_BYTEORDER_SWAPPED
 )
 from ._compat import (
-    open, fsspec, _make_compressor
+    _make_compressor, _open_zarr_group, _create_array
 )
 
 def nii2json(header, extensions=False):
@@ -384,7 +383,7 @@ def nii2zarr(
     inp : nib.Nifti1Image or file_like
         Input nifti image
     out : zarr.Store or zarr.Group or path
-        Output zarr object
+        Output zarr object/path. If object, it must be opened with "w" capability
 
     Other Parameters
     ----------------
@@ -433,14 +432,7 @@ def nii2zarr(
         else:
             inp = load(inp)
 
-    # Open zarr group
-    if not isinstance(out, zarr.Group):
-        if not isinstance(out, zarr.storage.StoreLike):
-            if fsspec:
-                out = zarr.storage.FsspecStore(out)
-            else:
-                out = zarr.storage.LocalStore(out)
-        out = zarr.group(store=out, overwrite=True, zarr_version=zarr_version)
+    out = _open_zarr_group(out, zarr_version=zarr_version)
 
     if no_time and len(inp.shape) > 3:
         inp = Nifti1Image(inp.dataobj[:, :, :, None], inp.affine, inp.header)
@@ -553,7 +545,7 @@ def nii2zarr(
     #     storage_options=chunk
     # )
     for i, d in enumerate(data):
-        out.create_array(str(i), shape=d.shape, **chunk[i])
+        _create_array(out, str(i), shape=d.shape, **chunk[i])
         out[str(i)][:] = d
     # Write nifti header (binary)
     stream = io.BytesIO()
@@ -563,7 +555,8 @@ def nii2zarr(
     if len(inp.header.extensions) == 0:
         bin_data = bin_data[:-4]
 
-    out.create_array(
+    _create_array(
+        out,
         'nifti',
         shape=[len(bin_data)],
         chunks=len(bin_data),

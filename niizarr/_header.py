@@ -85,7 +85,6 @@ HEADERTYPE2 = np.dtype([
 
 
 class Recoder:
-
     def __init__(self, obj=None):
         self.forward = {}
         self.backward = {}
