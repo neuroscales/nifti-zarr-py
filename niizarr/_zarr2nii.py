@@ -13,6 +13,7 @@ from ._compat import _open_zarr_group
 from ._header import bin2nii, get_nibabel_klass, SYS_BYTEORDER
 from ._units import convert_unit, ome_valid_units
 
+
 def _ome2affine(ome, level=0):
     names = [axis["name"] for axis in ome[0]["axes"]]
     units = [axis.get("unit", None) for axis in ome[0]["axes"]]

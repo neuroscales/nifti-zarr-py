@@ -11,8 +11,9 @@ from nibabel.nifti1 import Nifti1Extension
 
 from _data import get_nifti_image
 from niizarr import nii2zarr
-from niizarr._header import SYS_BYTEORDER, HEADERTYPE1
 from niizarr._compat import _swap_header
+from niizarr._header import SYS_BYTEORDER, HEADERTYPE1
+
 
 class TestEndian(unittest.TestCase):
     def setUp(self):
