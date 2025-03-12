@@ -11,7 +11,6 @@ from nibabel.nifti1 import Nifti1Extension
 
 from _data import get_nifti_image
 from niizarr import nii2zarr
-from niizarr._compat import _swap_header
 from niizarr._header import SYS_BYTEORDER, HEADERTYPE1
 
 
@@ -27,7 +26,7 @@ class TestEndian(unittest.TestCase):
         # so there will be a endian sign in dtype
         ni.set_data_dtype(np.dtype("int32"))
         header = np.frombuffer(ni.header.structarr.tobytes(), HEADERTYPE1).byteswap()
-        header = _swap_header(header)
+        header = header.view(header.dtype.newbyteorder())
         header_file_obj = io.BytesIO(header.tobytes())
         header = Nifti1Header.from_fileobj(header_file_obj)
         inv_ni = Nifti1Image(ni.get_fdata(), np.eye(4), header=header)

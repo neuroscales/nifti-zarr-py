@@ -50,28 +50,6 @@ def _make_compressor(
     return Compressor(**kwargs)
 
 
-def _swap_header(header: np.ndarray) -> np.ndarray:
-    """
-    Byteswap the given header array based on the installed numpy version.
-
-    For numpy versions < 2.0.0, it uses header.newbyteorder().
-    For numpy versions >= 2.0.0, it uses header.view(header.dtype.newbyteorder()).
-
-    Parameters:
-        header (np.ndarray): The numpy array (or structured array) whose byte order needs to be swapped.
-
-    Returns:
-        np.ndarray: The array with its byte order swapped.
-    
-    Note: newbyteorder() does not change data in memory, it only changes how data is interpreted.
-          byteswap() changes the data in memory.
-    """
-    if NumpyVersion(np.__version__) < NumpyVersion("2.0.0"):
-        return header.newbyteorder()
-    else:
-        return header.view(header.dtype.newbyteorder())
-
-
 def _open_zarr(
         out: Union[str, Any],
         mode: Literal["r", "w"] = "w",

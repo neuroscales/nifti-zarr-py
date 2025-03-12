@@ -6,8 +6,6 @@ from typing import Literal, Tuple
 import numpy as np
 from nibabel import (Nifti1Image, Nifti1Header, Nifti2Image, Nifti2Header)
 
-from ._compat import (_swap_header)
-
 SYS_BYTEORDER = '<' if sys.byteorder == 'little' else '>'
 SYS_BYTEORDER_SWAPPED = '>' if SYS_BYTEORDER == '<' else '<'
 
@@ -352,7 +350,7 @@ def try_header_version(buffer: bytes, version: Literal[1, 2] = 1):
     byteorder_swapped = False
     header = np.frombuffer(buffer, dtype=HEADER_TYPE, count=1)[0]
     if header['sizeof_hdr'] != HEADER_SIZE:
-        header = _swap_header(header)
+        header = header.view(header.dtype.newbyteorder())
         byteorder_swapped = True
         if header['sizeof_hdr'] != HEADER_SIZE:
             return None
