@@ -89,10 +89,9 @@ def _open_zarr(
         StoreLike = zarr.storage.Store
         FsspecStore = zarr.storage.FSStore
         LocalStore = zarr.storage.DirectoryStore
-        if "zarr_version" in kwargs:
-            if kwargs["zarr_version"] != pyzarr_version:
-                warnings.warn("zarr_version is ignored in pyzarr version 2")
-            kwargs.pop("zarr_version")
+        if "zarr_version" in kwargs or "zarr_format" in kwargs:
+            if kwargs.pop("zarr_version", 2) != 2 or kwargs.pop("zarr_format", 2) != 2:
+                raise ValueError("Only zarr 2 is supported with zarr-python < 3.0.0")
 
     if isinstance(out, (zarr.Group, zarr.Array)):
         return out
