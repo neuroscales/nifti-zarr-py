@@ -657,10 +657,12 @@ def cli(args=None):
         help='Thick slice axis that should not be downsampled'
     )
     parser.add_argument(
-        '--zarr-version', type=int, default=2
+        '--zarr-version', type=int, default=2, choices=(2, 3),
+        help='Zarr format version'
     )
     parser.add_argument(
-        '--ome-version', type=str, default="0.4"
+        '--ome-version', type=str, default="0.4", choices=("0.4", "0.5"),
+        help='OME-Zarr specification version'
     )
 
     args = args or sys.argv[1:]
