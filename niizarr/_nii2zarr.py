@@ -377,6 +377,8 @@ def write_ome_metadata(
     if ome_version == "0.4":
         omz.attrs["multiscales"] = multiscales
     elif ome_version == "0.5":
+        # old neuroglancer doesn't check "ome" for multiscales, so we need to
+        # duplicate the information
         omz.attrs["multiscales"] = multiscales
         omz.attrs["ome"] = {"multiscales": multiscales}
     else:
