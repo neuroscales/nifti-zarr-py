@@ -616,7 +616,7 @@ def cli(args=None):
     parser.add_argument(
         'input', help='Input nifti file')
     parser.add_argument(
-        'output', help='Output zarr directory')
+        'output', default=None, nargs="?", help='Output zarr directory, when not specified, write to input directory')
     parser.add_argument(
         '--chunk', type=int, default=64, help='Spatial chunk size')
     parser.add_argument(
@@ -667,6 +667,10 @@ def cli(args=None):
 
     args = args or sys.argv[1:]
     args = parser.parse_args(args)
+
+    if args.output is None:
+        print('Output not specified, using input directory')
+        args.output = re.sub(r'\.nii(\.gz)?$', '', args.input) + '.nii.zarr'
 
     nii2zarr(
         args.input, args.output,
