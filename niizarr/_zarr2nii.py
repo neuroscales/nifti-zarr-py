@@ -278,11 +278,22 @@ def cli(args=None):
     parser.add_argument(
         'input', help='Input zarr directory')
     parser.add_argument(
-        'output', help='Output nifti file')
+        'output', default=None, nargs="?", help='Output nifti file, when not provided, write to the same directory as input')
     parser.add_argument(
         '--level', type=int, default=0,
         help='Pyramid level to extract (default: 0 = coarsest)')
 
     args = args or sys.argv[1:]
     args = parser.parse_args(args)
+    if args.output is None:
+        if args.input.endswith('/'):
+            args.input = args.input[:-1]
+        if args.input.endswith('.nii.zarr'):
+            args.output = args.input[:-9] + '.nii.gz'
+        elif args.input.endswith('.ome.zarr'):
+            args.output = args.input[:-8] + '.nii.gz'
+        elif args.input.endswith('.zarr'):
+            args.output = args.input[:-5] + '.nii.gz'
+        else:
+            args.output = args.input + '.nii.gz'
     zarr2nii(args.input, args.output, args.level)
