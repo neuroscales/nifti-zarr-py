@@ -1,23 +1,23 @@
 import json
+import os.path as op
 import tempfile
 import unittest
-import os.path as op
 
 import nibabel as nib
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
-import niizarr
 
+import niizarr
 
 HERE = op.dirname(op.abspath(__file__))
 DATA = op.join(HERE, "data")
-ROOT = op.join(HERE, "..", "..")
+ROOT = op.join(HERE, "..")
 
 
 class TestJSONValidation(unittest.TestCase):
 
     def setUp(self):
-        self.schema_file = op.join(ROOT, "nifti-zarr-schema-0.3.json")
+        self.schema_file = op.join(ROOT, "nifti-zarr-schema-1.0.rc1.json")
         with open(self.schema_file) as f:
             self.schema = json.load(f)
 
