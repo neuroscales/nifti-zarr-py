@@ -24,7 +24,7 @@ jobs:
             zarr-version: "==2.*"
             nibabel-version: "==3.*"
             ski-version: "~=0.19.2"
-            numcodecs-version: "==0.8.*"
+            numcodecs-version: "==0.9.*"
             dask-version: "==2020.*"
           - python-version: 3.12
             numpy-version: ">=2.0.0"
