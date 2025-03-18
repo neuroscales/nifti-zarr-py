@@ -65,7 +65,7 @@ def _create_default_header(inp, inp0, ome):
         NiftiHeader, NiftiImage = Nifti2Header, Nifti2Image
     else:
         NiftiHeader, NiftiImage = Nifti1Header, Nifti1Image
-    header = niiheader = NiftiHeader()
+    niiheader = NiftiHeader()
     if ome:
         affine = _ome2affine(ome)
 
@@ -274,14 +274,16 @@ def zarr2nii(
 def cli(args=None):
     """Command-line entrypoint"""
     parser = argparse.ArgumentParser(
-        'zarr2nii', description='Convert nifti to nifti-zarr')
+        'zarr2nii', description='Convert nifti to nifti-zarr.')
     parser.add_argument(
-        'input', help='Input zarr directory')
+        'input', help='Input zarr directory.')
     parser.add_argument(
-        'output', default=None, nargs="?", help='Output nifti file, when not provided, write to the same directory as input')
+        'output', default=None, nargs="?",
+        help='Output nifti file. '
+             'When not provided, write to the same directory as input.')
     parser.add_argument(
         '--level', type=int, default=0,
-        help='Pyramid level to extract (default: 0 = coarsest)')
+        help='Pyramid level to extract (default: 0 = finest).')
 
     args = args or sys.argv[1:]
     args = parser.parse_args(args)
