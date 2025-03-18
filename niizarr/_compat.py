@@ -1,4 +1,3 @@
-import warnings
 from typing import Literal, Optional, Union, Any
 
 import zarr
@@ -123,12 +122,13 @@ def _create_array(
         if dimension_separator == '.' and out.metadata.zarr_format == 2:
             pass
         elif dimension_separator == '/' and out.metadata.zarr_format == 3:
-            pass 
+            pass
         else:
-            from zarr.core.chunk_key_encodings import ChunkKeyEncoding, ChunkKeyEncodingParams
+            from zarr.core.chunk_key_encodings import (ChunkKeyEncoding,
+                                                       ChunkKeyEncodingParams)
             dimension_separator = ChunkKeyEncoding.from_dict(
                 ChunkKeyEncodingParams(
-                    name="default" if out.metadata.zarr_format == 3 else "v2", 
+                    name="default" if out.metadata.zarr_format == 3 else "v2",
                     separator=dimension_separator))
 
         kwargs["chunk_key_encoding"] = dimension_separator
