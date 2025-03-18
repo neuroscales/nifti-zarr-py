@@ -47,12 +47,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install -U \
-            numpy${{ matrix.numpy-version }} \
-            zarr${{ matrix.zarr-version }} \
-            nibabel${{ matrix.nibabel-version }} \
-            scikit-image${{ matrix.ski-version }} \
-            numcodecs${{ matrix.numcodecs-version }} \
-            dask-image${{ matrix.dask-version }}
+            "numpy${{ matrix.numpy-version }}" \
+            "zarr${{ matrix.zarr-version }}" \
+            "nibabel${{ matrix.nibabel-version }}" \
+            "scikit-image${{ matrix.ski-version }}" \
+            "numcodecs${{ matrix.numcodecs-version }}" \
+            "dask-image${{ matrix.dask-version }}"
 
       - name: Install nifti-zarr
         run: python -m pip install ".[test]"
