@@ -1,0 +1,58 @@
+[project]
+name = "nifti-zarr"
+authors = [{name = "Yael Balbastre", email = "y.balbastre@ucl.ac.uk"}]
+maintainers = [{name = "Kaidong Chai", email = "kchai1@mgh.harvard.edu"}]
+description = "Nifti-Zarr conversion tools in Python"
+readme = "README.md"
+license = {file = "LICENSE"}
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Science/Research",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "zarr >= 2",
+    "nibabel >= 3",
+    "dask >= 2020",
+    "numpy >= 1.18",
+    "numcodecs >= 0.8",
+    "scikit-image >= 0.19.2",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+http = ["fsspec[http]"]
+test = ["pooch", "jsonschema", "pytest"]
+
+[project.urls]
+Homepage = "https://github.com/neuroscales/nifti-zarr-py"
+Issues = "https://github.com/neuroscales/nifti-zarr-py/issues"
+
+[project.scripts]
+nii2zarr = "niizarr._nii2zarr:cli"
+zarr2nii = "niizarr._zarr2nii:cli"
+
+[build-system]
+requires = [
+  "setuptools >= 61.0",
+  "wheel",
+  "versioningit >= 1.0",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["niizarr"]
+
+[tool.versioningit]
+default-version = "0+unknown"
+
+[tool.versioningit.format]
+# Same format as versioneer
+distance = "{base_version}+{distance}.{vcs}{rev}"
+dirty = "{base_version}+{distance}.{vcs}{rev}.dirty"
+distance-dirty = "{base_version}+{distance}.{vcs}{rev}.dirty"
+
+[tool.versioningit.write]
+file = "niizarr/_version.py"
