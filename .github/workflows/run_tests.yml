@@ -50,7 +50,7 @@ jobs:
             "nibabel${{ matrix.nibabel-version }}" \
             "scikit-image${{ matrix.ski-version }}" \
             "numcodecs${{ matrix.numcodecs-version }}" \
-            "dask-image${{ matrix.dask-version }}"
+            "dask${{ matrix.dask-version }}"
 
       - name: Install nifti-zarr
         run: python -m pip install ".[test]"
