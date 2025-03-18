@@ -129,9 +129,8 @@ if __name__ == '__main__':
         output_file = input_file.replace(".gz", ".zarr")
         nii2zarr(input_file, output_file, chunk=64)
         from niizarr._compat import _open_zarr
-        inp = _open_zarr(output_file)
+        inp = _open_zarr(output_file, "r")
 
-        inp = zarr.group(store=inp)
         for layer in (0, 1, 'nifti'):
             if str(layer) not in inp:
                 continue
