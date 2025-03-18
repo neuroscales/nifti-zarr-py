@@ -1,9 +1,8 @@
 import warnings
 from typing import Literal, Optional, Union, Any
 
-import numpy as np
 import zarr
-from numpy.lib import NumpyVersion
+from nibabel import Nifti1Image
 from packaging.version import parse as V
 
 # If fsspec available, use fsspec
@@ -48,6 +47,12 @@ def _make_compressor(
     Compressor = compressor_map[name]
 
     return Compressor(**kwargs)
+
+
+def _load_nifti_from_stream(inp):
+    if not hasattr(Nifti1Image, "from_stream"):
+        raise Exception("this version of nibabel does not support loading from stream")
+    return Nifti1Image.from_stream(inp)
 
 
 def _open_zarr(

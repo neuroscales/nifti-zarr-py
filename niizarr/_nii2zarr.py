@@ -14,7 +14,7 @@ from nibabel.nifti2 import Nifti2Header, Nifti2Image
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._compat import (
-    _make_compressor, _open_zarr, _create_array
+    _make_compressor, _open_zarr, _create_array, _load_nifti_from_stream
 )
 from ._header import (
     UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS,
@@ -453,7 +453,7 @@ def nii2zarr(
     # Open nifti image with nibabel
     if not isinstance(inp, (Nifti1Image, Nifti2Image)):
         if hasattr(inp, 'read'):
-            inp = Nifti1Image.from_stream(inp)
+            inp = _load_nifti_from_stream(inp)
         else:
             inp = nib.load(inp)
 
