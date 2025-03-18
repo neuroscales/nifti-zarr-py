@@ -1,0 +1,17 @@
+name: Publish to PyPI when publishing a GH release
+on:
+  release:
+    types: [published]
+
+jobs:
+  run-tests:
+    uses: ./.github/workflows/run_tests.yml
+    with:
+      checkout: ${{ github.ref }}
+
+  publish-pypi:
+    needs: run-tests
+    uses: ./.github/workflows/publish.yml
+    with:
+      checkout: ${{ github.ref }}
+      python-version: ${{ inputs.python-version }}
