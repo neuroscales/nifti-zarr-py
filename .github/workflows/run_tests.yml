@@ -20,20 +20,20 @@ jobs:
         include:
           # lower bound
           - python-version: 3.8
-            numpy-version: "== 1.*"
-            zarr-version: "== 2.*"
-            nibabel-version: "== 3.*"
-            ski-version: ">= 0.19.2, == 0.19.*"
-            numcodecs-version: "== 0.8.*"
-            dask-version: "== 2020.*"
+            numpy-version: "==1.*"
+            zarr-version: "==2.*"
+            nibabel-version: "==3.*"
+            ski-version: "~=0.19.2"
+            numcodecs-version: "==0.8.*"
+            dask-version: "==2020.*"
           # upper bound
           - python-version: 3.12
-            numpy-version: ">= 2.0.0"
-            zarr-version: ">= 3.0.0"
-            nibabel-version: ">= 5.0.0"
-            ski-version: ">= 0.25.0"
-            numcodecs-version: ">= 0.15.0"
-            dask-version: ">= 2025.0.0"
+            numpy-version: ">=2.0.0"
+            zarr-version: ">=3.0.0"
+            nibabel-version: ">=5.0.0"
+            ski-version: ">=0.25.0"
+            numcodecs-version: ">=0.15.0"
+            dask-version: ">=2025.0.0"
 
     steps:
       - name: Set up Python ${{ matrix.python-version }}
@@ -47,12 +47,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install -U \
-            numpy ${{ matrix.numpy-version }} \
-            zarr ${{ matrix.zarr-version }} \
-            nibabel ${{ matrix.nibabel-version }} \
-            scikit-image ${{ matrix.ski-version }} \
-            numcodecs ${{ matrix.numcodecs-version }} \
-            dask-image ${{ matrix.dask-version }}
+            numpy${{ matrix.numpy-version }} \
+            zarr${{ matrix.zarr-version }} \
+            nibabel${{ matrix.nibabel-version }} \
+            scikit-image${{ matrix.ski-version }} \
+            numcodecs${{ matrix.numcodecs-version }} \
+            dask-image${{ matrix.dask-version }}
 
       - name: Install nifti-zarr
         run: python -m pip install ".[test]"
