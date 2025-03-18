@@ -18,7 +18,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         include:
-          # lower bound
           - python-version: 3.8
             numpy-version: "==1.*"
             zarr-version: "==2.*"
@@ -26,7 +25,6 @@ jobs:
             ski-version: "~=0.19.2"
             numcodecs-version: "==0.8.*"
             dask-version: "==2020.*"
-          # upper bound
           - python-version: 3.12
             numpy-version: ">=2.0.0"
             zarr-version: ">=3.0.0"
