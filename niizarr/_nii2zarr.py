@@ -394,7 +394,7 @@ def write_ome_metadata(
         raise Exception("Unsupported ome version")
 
 
-def _write_nifti_zarr_header(
+def write_nifti_header(
         omz: zarr.Group,
         header: Union[Nifti1Header, Nifti2Header]
 ) -> None:
@@ -623,7 +623,7 @@ def nii2zarr(
         ome_version=ome_version
     )
 
-    _write_nifti_zarr_header(out, inp.header)
+    write_nifti_header(out, inp.header)
     return
 
 

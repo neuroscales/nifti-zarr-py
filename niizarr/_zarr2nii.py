@@ -59,9 +59,9 @@ def _ome2affine(ome, level=0):
     return affine
 
 
-def _create_default_header(inp, inp0, ome):
+def default_nifti_header(inp0: zarr.Array, ome):
     # not a nifti-zarr -> create nifti header on the fly
-    if any(x > 2 ** 15 for x in inp['0'].shape):
+    if any(x > 2 ** 15 for x in inp0.shape):
         NiftiHeader, NiftiImage = Nifti2Header, Nifti2Image
     else:
         NiftiHeader, NiftiImage = Nifti1Header, Nifti1Image
@@ -165,7 +165,7 @@ def zarr2nii(
     # --------------------------
 
     if not is_group or 'nifti' not in inp:
-        niiheader, NiftiImage = _create_default_header(inp, inp0, ome)
+        niiheader, NiftiImage = default_nifti_header(inp0, ome)
     else:
         header = bin2nii(np.asarray(inp['nifti']).tobytes())
         NiftiHeader, NiftiImage = get_nibabel_klass(header)
