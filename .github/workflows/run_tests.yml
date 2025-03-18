@@ -1,15 +1,17 @@
 name: Run tests
 on:
   workflow_dispatch:
-    checkout:
-      description: 'Commit / Branch / Tag / SHA to checkout'
-      required: false
-      default: ''
+    inputs:
+      checkout:
+        description: 'Commit / Branch / Tag / SHA to checkout'
+        required: false
+        default: ''
   workflow_call:
-    checkout:
-      description: 'Commit / Branch / Tag / SHA to checkout'
-      required: false
-      default: ''
+    inputs:
+      checkout:
+        description: 'Commit / Branch / Tag / SHA to checkout'
+        required: false
+        default: ''
   push:
     paths:
       - tests/**
