@@ -7,8 +7,8 @@ import nibabel as nib
 import numpy as np
 import zarr
 
-from _data import compare_zarr_archives
 from niizarr import nii2zarr
+from ._data import compare_zarr_archives
 
 HERE = op.dirname(op.abspath(__file__))
 DATA = op.join(HERE, "data")
