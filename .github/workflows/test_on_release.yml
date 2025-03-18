@@ -1,0 +1,10 @@
+name: Test when creating a GH release
+on:
+  release:
+    types: [created, edited]
+
+jobs:
+  run-tests:
+    uses: ./.github/workflows/run_tests.yml
+    with:
+      checkout: ${{ github.ref }}
