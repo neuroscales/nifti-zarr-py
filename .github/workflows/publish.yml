@@ -16,10 +16,12 @@ on:
         description: 'Commit / Branch / Tag / SHA to checkout'
         required: false
         default: ''
+        type: string
       python-version:
         description: 'Python version'
         required: false
         default: '3.8'
+        type: string
 
 jobs:
   publish-pypi:
