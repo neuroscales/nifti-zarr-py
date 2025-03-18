@@ -16,7 +16,7 @@
     "dtype": "<i2",
     "fill_value": null,
     "filters": null,
-    "order": "F",
+    "order": "C",
     "shape": [
         2,
         12,

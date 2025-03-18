@@ -4,7 +4,9 @@ import json
 import math
 import re
 import sys
-from typing import Literal, Union, List, Optional, Callable, Generator, Any, Tuple
+from typing import (
+    Literal, Union, List, Optional, Callable, Generator, Any, Tuple
+)
 
 import nibabel as nib
 import numpy as np
@@ -14,7 +16,7 @@ from nibabel.nifti2 import Nifti2Header, Nifti2Image
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._compat import (
-    _make_compressor, _open_zarr, _create_array
+    _make_compressor, _open_zarr, _create_array, _load_nifti_from_stream
 )
 from ._header import (
     UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS,
@@ -371,7 +373,9 @@ def write_ome_metadata(
     scale = [1.0] * ndim
     if "t" in axes:
         scale[axes.index("t")] = time_scale
-    multiscales[0]["coordinateTransformations"] = [{"scale": scale, "type": "scale"}]
+    multiscales[0]["coordinateTransformations"] = [{
+        "scale": scale, "type": "scale"
+    }]
 
     multiscales[0]["version"] = ome_version
     if ome_version == "0.4":
@@ -411,7 +415,8 @@ def nii2zarr(
     inp : Nifti1Image | Nifti12mage | file-like
         Input nifti image.
     out : zarr.Store, zarr.Group or path
-        Output zarr object/path. If object, it must be opened with "w" capability.
+        Output zarr object/path.
+        If object, it must be opened with "w" capability.
     chunk : int or tuple of int, optional
         Chunk size for spatial dimensions.
         The tuple allows different chunk sizes to be used along each dimension.
@@ -453,7 +458,7 @@ def nii2zarr(
     # Open nifti image with nibabel
     if not isinstance(inp, (Nifti1Image, Nifti2Image)):
         if hasattr(inp, 'read'):
-            inp = Nifti1Image.from_stream(inp)
+            inp = _load_nifti_from_stream(inp)
         else:
             inp = nib.load(inp)
 
@@ -530,8 +535,6 @@ def nii2zarr(
 
     data = list(_make_pyramid3d(data, nb_levels, pyramid_fn, label,
                                 no_pyramid_axis))
-
-    shapes = [d.shape[-3:] for d in data]
 
     # Fix data type
     # If nifti was swapped when loading it, we want to swapped it back
@@ -612,13 +615,15 @@ def nii2zarr(
 def cli(args=None):
     """    Command-line entrypoint"""
     parser = argparse.ArgumentParser(
-        'nii2zarr', description='Convert nifti to nifti-zarr')
+        'nii2zarr', description='Convert nifti to nifti-zarr.')
     parser.add_argument(
-        'input', help='Input nifti file')
+        'input', help='Input nifti file.')
     parser.add_argument(
-        'output', default=None, nargs="?", help='Output zarr directory, when not specified, write to input directory')
+        'output', default=None, nargs="?",
+        help='Output zarr directory. '
+             'When not specified, write to input directory.')
     parser.add_argument(
-        '--chunk', type=int, default=64, help='Spatial chunk size')
+        '--chunk', type=int, default=64, help='Spatial chunk size.')
     parser.add_argument(
         '--unchunk-channels', action='store_true',
         help='Save all chanels in a single chunk. '
@@ -630,39 +635,39 @@ def cli(args=None):
         '--unchunk-time', action='store_true',
         help='Save all timepoints in a single chunk.'
              'Unchunk if you want to display all timepoints as a single RGB '
-             'layer in neuroglancer. Chunked by default. '
+             'layer in neuroglancer. Chunked by default.'
     )
     parser.add_argument(
         '--levels', type=int, default=-1,
-        help='Number of levels in the pyramid. If -1 (default), use '
-             'as many levels as possible')
+        help='Number of levels in the pyramid. '
+             'If -1 (default), use as many levels as possible.')
     parser.add_argument(
         '--method', choices=('gaussian', 'laplacian'), default='gaussian',
-        help='Pyramid method')
+        help='Pyramid method.')
     parser.add_argument(
-        '--fill', default=None, help='Missing value')
+        '--fill', default=None, help='Missing value.')
     parser.add_argument(
         '--compressor', choices=('blosc', 'zlib'), default='blosc',
-        help='Compressor')
+        help='Compressor.')
     parser.add_argument(
         '--label', action='store_true', default=None,
-        help='Segmentation volume')
+        help='Segmentation volume.')
     parser.add_argument(
         '--no-label', action='store_false', dest='label',
-        help='Not a segmentation volume')
+        help='Not a segmentation volume.')
     parser.add_argument(
-        '--no-time', action='store_true', help='No time dimension')
+        '--no-time', action='store_true', help='No time dimension.')
     parser.add_argument(
         '--no-pyramid-axis', choices=('x', 'y', 'z'),
-        help='Thick slice axis that should not be downsampled'
+        help='Thick slice axis that should not be downsampled.'
     )
     parser.add_argument(
         '--zarr-version', type=int, default=2, choices=(2, 3),
-        help='Zarr format version'
+        help='Zarr format version.'
     )
     parser.add_argument(
         '--ome-version', type=str, default="0.4", choices=("0.4", "0.5"),
-        help='OME-Zarr specification version'
+        help='OME-Zarr specification version.'
     )
 
     args = args or sys.argv[1:]

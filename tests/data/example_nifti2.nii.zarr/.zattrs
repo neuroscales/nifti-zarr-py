@@ -39,7 +39,7 @@
                     "coordinateTransformations": [
                         {
                             "scale": [
-                                1.0,
+                                1,
                                 2.1999990940093994,
                                 2.0,
                                 2.0
@@ -48,7 +48,7 @@
                         },
                         {
                             "translation": [
-                                0.0,
+                                0,
                                 0.0,
                                 0.0,
                                 0.0
@@ -59,7 +59,8 @@
                     "path": "0"
                 }
             ],
-            "name": "/",
+            "name": "",
+            "type": "median window 2x2x2",
             "version": "0.4"
         }
     ]

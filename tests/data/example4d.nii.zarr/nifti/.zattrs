@@ -77,7 +77,7 @@
     },
     "SForm": "scanner_anat",
     "ScaleOffset": 0.0,
-    "ScaleSlope": 0.0,
+    "ScaleSlope": 1.0,
     "SliceTime": 0.0,
     "SliceType": "",
     "TimeOffset": 0.0,
