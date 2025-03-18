@@ -15,15 +15,16 @@ requires-python = ">=3.8"
 dependencies = [
     "zarr >= 2",
     "nibabel >= 3",
-    "dask >= 2020",
+    "dask[array] >= 2020",
     "numpy >= 1.18",
-    "numcodecs >= 0.8",
+    "numcodecs >= 0.9",
     "scikit-image >= 0.19.2",
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
-http = ["fsspec[http]"]
+http = ["nibabel>=5", "fsspec[http]"]
+s3 = ["nibabel>=5", "fsspec[s3]"]
 test = ["pooch", "jsonschema", "pytest"]
 
 [project.urls]

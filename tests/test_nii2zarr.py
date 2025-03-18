@@ -6,9 +6,10 @@ import unittest
 import nibabel as nib
 import numpy as np
 import zarr
+from packaging.version import parse as V
 
-from _data import compare_zarr_archives
 from niizarr import nii2zarr
+from ._data import compare_zarr_archives
 
 HERE = op.dirname(op.abspath(__file__))
 DATA = op.join(HERE, "data")
@@ -28,6 +29,9 @@ class Testnii2zarr(unittest.TestCase):
         nii2zarr(op.join(DATA, "example4d.nii.gz"), self.temp_dir.name)
 
     def test_input_fd(self):
+        if V(nib.__version__) < V("5"):
+            # nibabel needs to be >= 5 to support from_stream
+            return
         with gzip.open(op.join(DATA, "example4d.nii.gz"), "rb") as f:
             nii2zarr(f, self.temp_dir.name)
 

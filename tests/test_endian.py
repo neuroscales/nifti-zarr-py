@@ -9,9 +9,9 @@ import numpy as np
 from nibabel import Nifti1Header, Nifti1Image
 from nibabel.nifti1 import Nifti1Extension
 
-from _data import get_nifti_image
 from niizarr import nii2zarr
 from niizarr._header import SYS_BYTEORDER, HEADERTYPE1
+from ._data import get_nifti_image
 
 
 class TestEndian(unittest.TestCase):
