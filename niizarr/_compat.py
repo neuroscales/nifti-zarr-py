@@ -51,7 +51,7 @@ def _make_compressor(
 
 def _load_nifti_from_stream(inp):
     if not hasattr(Nifti1Image, "from_stream"):
-        raise Exception("this version of nibabel does not support loading from stream")
+        raise Exception("nibabel >=5 is required to read from stream or remote ")
     return Nifti1Image.from_stream(inp)
 
 
