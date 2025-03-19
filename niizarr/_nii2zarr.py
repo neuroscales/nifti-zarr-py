@@ -13,6 +13,7 @@ import numpy as np
 import zarr.storage
 from nibabel.nifti1 import Nifti1Header, Nifti1Image
 from nibabel.nifti2 import Nifti2Header, Nifti2Image
+from numpy import ndarray
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._compat import (
@@ -25,14 +26,14 @@ from ._header import (
 )
 
 
-def nii2json(header: Union[Nifti1Header, Nifti2Header],
+def nii2json(header: Union[Nifti1Header, Nifti2Header, ndarray],
              extensions: bool = False) -> dict:
     """
     Convert a nifti header to a JSON serializable dictionary.
 
     Parameters
     ----------
-    header : Nifti1Header | Nifti2Header
+    header : Nifti1Header | Nifti2Header | ndarray
         Nifti header object.
     extensions : bool, optional
         Whether nifti extensions are present.
@@ -42,6 +43,10 @@ def nii2json(header: Union[Nifti1Header, Nifti2Header],
     dict
         Nifti header in JSON form following JNIfTI specification.
     """
+    if isinstance(header, (Nifti1Header, Nifti2Header)):
+        extensions = len(header.extensions) != 0
+        header = bin2nii(header.structarr.tobytes())
+
     header = header.copy()
 
     ndim = header["dim"][0].item()
@@ -389,6 +394,36 @@ def write_ome_metadata(
         raise Exception("Unsupported ome version")
 
 
+def write_nifti_header(
+        omz: zarr.Group,
+        header: Union[Nifti1Header, Nifti2Header]
+) -> None:
+    jsonheader = nii2json(header)
+    # Write nifti header (binary)
+    stream = io.BytesIO()
+    header.write_to(stream)
+    bin_data = np.frombuffer(stream.getvalue(), dtype=np.uint8)
+    # Remove the extension flag if there are no extensions
+    if len(header.extensions) == 0:
+        bin_data = bin_data[:-4]
+    _create_array(
+        omz,
+        'nifti',
+        shape=[len(bin_data)],
+        chunks=len(bin_data),
+        dtype='u1',
+        compressors=None,
+        fill_value=None,
+        dimension_separator='/',
+        overwrite=True,
+    )
+    omz['nifti'][:] = bin_data
+
+    # Write nifti header (JSON)
+    omz['nifti'].attrs.update(jsonheader)
+    return
+
+
 def nii2zarr(
         inp: Union[Nifti1Image, Nifti2Image, Any],
         out: Union[str, Any],
@@ -571,28 +606,6 @@ def nii2zarr(
     for i, d in enumerate(data):
         _create_array(out, str(i), shape=d.shape, **chunk[i])
         out[str(i)][:] = d
-    # Write nifti header (binary)
-    stream = io.BytesIO()
-    inp.header.write_to(stream)
-    bin_data = np.frombuffer(stream.getvalue(), dtype=np.uint8)
-    # Remove the extension flag if there are no extensions
-    if len(inp.header.extensions) == 0:
-        bin_data = bin_data[:-4]
-
-    _create_array(
-        out,
-        'nifti',
-        shape=[len(bin_data)],
-        chunks=len(bin_data),
-        dtype='u1',
-        compressors=None,
-        fill_value=None,
-        dimension_separator='/',
-        overwrite=True,
-    )
-    out['nifti'][:] = bin_data
-    # Write nifti header (JSON)
-    out['nifti'].attrs.update(jsonheader)
 
     # write xarray metadata
     for i in range(len(data)):
@@ -609,6 +622,8 @@ def nii2zarr(
         time_unit=JNIFTI_ZARR[jsonheader["Unit"]["T"]],
         ome_version=ome_version
     )
+
+    write_nifti_header(out, inp.header)
     return
 
 
