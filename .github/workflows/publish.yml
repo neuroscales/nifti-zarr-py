@@ -1,3 +1,11 @@
+# NOTE
+#   This cannot be a reusable workflow, as trusted publishing requires
+#   "permissions: id-token: write" and this is forbidden for
+#   reusable workfows.
+#   This workflow is therefore generally not used. Instead, we use
+#   publish_on_release which contains the same steps, but is triggered
+#   by a release.
+
 name: Publish to PyPI
 on:
   workflow_dispatch:
@@ -6,30 +14,18 @@ on:
         description: 'Commit / Branch / Tag / SHA to checkout'
         required: false
         default: ''
-      python-version:
-        description: 'Python version'
-        required: false
-        default: '3.8'
-  workflow_call:
-    inputs:
-      checkout:
-        description: 'Commit / Branch / Tag / SHA to checkout'
-        required: false
-        default: ''
-        type: string
-      python-version:
-        description: 'Python version'
-        required: false
-        default: '3.8'
         type: string
 
 jobs:
   publish-pypi:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+
     steps:
       - name: Set up Python ${{ inputs.python-version }}
         uses: actions/setup-python@v5
-        with:
-          python-version: ${{ inputs.python-version }}
 
       - name: Check out
         uses: actions/checkout@v4
@@ -46,8 +42,5 @@ jobs:
       - name: Build distribution 📦
         run: python -m build
 
-      - name: Publish distribution 📦 to PyPI
+      - name: Publish distribution 📦 to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_TOKEN }}
-          repository_url: https://upload.pypi.org/legacy/

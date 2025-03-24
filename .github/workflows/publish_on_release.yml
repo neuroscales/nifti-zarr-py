@@ -1,4 +1,4 @@
-name: Publish to PyPI when publishing a GH release
+name: Publish to PyPI on release
 on:
   release:
     types: [published]
@@ -11,7 +11,29 @@ jobs:
 
   publish-pypi:
     needs: run-tests
-    uses: ./.github/workflows/publish.yml
-    with:
-      checkout: ${{ github.ref }}
-      python-version: ${{ inputs.python-version }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Set up Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v5
+
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.checkout }}
+
+      - name: Install dependencies for building package
+        run: python -m pip install --upgrade pip build
+
+      - name: Install distribution 📦
+        run: python -m pip install .
+
+      - name: Build distribution 📦
+        run: python -m build
+
+      - name: Publish distribution 📦 to Test PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
