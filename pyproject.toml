@@ -19,6 +19,7 @@ dependencies = [
     "numpy >= 1.18",
     "numcodecs >= 0.9",
     "scikit-image >= 0.19.2",
+    "packaging >= 19.0"
 ]
 dynamic = ["version"]
 

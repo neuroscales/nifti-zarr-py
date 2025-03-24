@@ -17,7 +17,7 @@ from numpy import ndarray
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._compat import (
-    _make_compressor, _open_zarr, _create_array, _load_nifti_from_stream
+    _make_compressor, _open_zarr, _create_array, _load_nifti_from_stream, pyzarr_version
 )
 from ._header import (
     UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS,
@@ -431,6 +431,9 @@ def nii2zarr(
         chunk: Union[int, Tuple[int]] = 64,
         chunk_channel: int = 1,
         chunk_time: int = 1,
+        shard: Optional[Union[int, Tuple[int]]] = None,
+        shard_channel: Optional[int] = None,
+        shard_time: Optional[int] = None,
         nb_levels: int = -1,
         method: Literal['gaussian', 'laplacian'] = 'gaussian',
         label: Optional[bool] = None,
@@ -461,6 +464,15 @@ def nii2zarr(
     chunk_time : int, optional
         Chunk size for the time dimension. If 0, combine all timepoints
         in a single chunk.
+    shard : int or tuple of int, optional
+        Shard size for spatial dimensions.
+        The tuple allows different shard sizes to be used along each dimension.
+    shard_channel : int, optional
+        Shard size of the channel dimension. If 0, combine all channels
+        in a single shard.
+    shard_time : int, optional
+        Shard size for the time dimension. If 0, combine all timepoints
+        in a single shard.
     nb_levels : int, optional
         Number of pyramid levels to generate.
         If -1, make all possible levels until the level can be fit into
@@ -490,6 +502,12 @@ def nii2zarr(
     -------
     None
     """
+    # check conflicts in parameters
+    if pyzarr_version == 2 and zarr_version == 3:
+        raise ValueError("zarr-python >=3.0.0 is required for zarr version 3")
+    if shard and zarr_version == 2:
+        raise ValueError("Sharding is only supported in zarr version 3")
+
     # Open nifti image with nibabel
     if not isinstance(inp, (Nifti1Image, Nifti2Image)):
         if hasattr(inp, 'read'):
@@ -523,42 +541,55 @@ def nii2zarr(
         elif np.issubdtype(data.dtype, np.bool_):
             fill_value = bool(fill_value)
 
+    
     # Fix array shape
+    nbatch = data.ndim - 3
     if data.ndim == 5:
-        nbatch = 2
         perm = [3, 4, 2, 1, 0]
         axes = ['t', 'c', 'z', 'y', 'x']
-        ARRAY_DIMENSIONS = ['time', 'channel', 'z', 'y', 'x']
         chunk_tc = (
             chunk_time or data.shape[3],
             chunk_channel or data.shape[4]
         )
+        shard_tc = (
+            shard_time or data.shape[3],
+            shard_channel or data.shape[4]
+        )
+        if no_time:
+            raise ValueError('no_time is not supported for 5D data')
     elif data.ndim == 4:
-        nbatch = 1
         perm = [3, 2, 1, 0]
-        axes = ['t', 'z', 'y', 'x']
-        ARRAY_DIMENSIONS = ['time', 'z', 'y', 'x']
-        chunk_tc = (chunk_time or data.shape[3],)
+        if no_time:
+            axes = ['c', 'z', 'y', 'x']
+            chunk_tc = (chunk_channel or data.shape[3],)
+            shard_tc = (shard_channel or data.shape[3],)
+        else:
+            axes = ['t', 'z', 'y', 'x']
+            chunk_tc = (chunk_time or data.shape[3],)
+            shard_tc = (shard_time or data.shape[3],)
     elif data.ndim == 3:
-        nbatch = 0
         perm = [2, 1, 0]
         axes = ['z', 'y', 'x']
-        ARRAY_DIMENSIONS = ['z', 'y', 'x']
         chunk_tc = tuple()
+        shard_tc = tuple()
     elif data.ndim > 5:
-        raise ValueError('Too many dimensions for conversion to nii.zarr')
+        raise ValueError('Too few dimensions for conversion to nii.zarr')
     else:
-        raise ValueError('Too few dimensions, this is weird')
+        raise ValueError('Too many dimensions for conversion to nii.zarr')
+    ARRAY_DIMENSIONS_MAP = {
+        't': 'time',
+        'c': 'channel',
+        'z': 'z',
+        'y': 'y',
+        'x': 'x',
+    }
+    ARRAY_DIMENSIONS = [ARRAY_DIMENSIONS_MAP[axis] for axis in axes]
     data = data.transpose(perm)
 
     # Compute image pyramid
     if label is None:
         label = jsonheader['Intent'] in ("label", "neuronames")
     pyramid_fn = pyramid_gaussian if method[0] == 'g' else pyramid_laplacian
-
-    # if chunk is a list, we use the first tuple,
-    # otherwise the logic might be too complicated
-    # TODO: this can be optimized with the later chunk size determination,
 
     chunksize = np.array((chunk,) * 3 if isinstance(chunk, int) else chunk)
     nxyz = np.array(data.shape[-3:])
@@ -588,23 +619,28 @@ def nii2zarr(
     # Prepare array metadata at each level
     compressor = _make_compressor(compressor, zarr_version=zarr_version,
                                   **compressor_options)
-    if not isinstance(chunk, list):
-        chunk = [chunk]
-    chunk = [tuple(c) if isinstance(c, (list, tuple)) else (c,) for c in chunk]
-    chunk = [c + c[-1:] * max(0, 3 - len(c)) + chunk_tc for c in chunk]
-    chunk = [tuple(c[i] for i in perm) for c in chunk]
-    chunk = chunk + chunk[-1:] * max(0, nb_levels - len(chunk))
-    chunk = [{
-        'chunks': c,
+    
+    chunk = tuple(chunk) if isinstance(chunk, (list, tuple)) else (chunk,)
+    chunk = chunk + chunk[-1:] * max(0, 3 - len(chunk)) + chunk_tc
+    chunk = tuple(chunk[i] for i in perm)
+
+    opts = {
+        'chunks': chunk,
         'dimension_separator': '/',
         'order': 'C',
         'dtype': data_type,
         'fill_value': fill_value,
         'compressors': compressor,
-    } for c in chunk]
+    }
+
+    if shard:
+        shard = tuple(shard) if isinstance(shard, (list, tuple)) else (shard,)
+        shard = shard + shard[-1:] * max(0, 3 - len(shard)) + shard_tc
+        shard = tuple(shard[i] for i in perm)
+        opts['shards'] = shard
 
     for i, d in enumerate(data):
-        _create_array(out, str(i), shape=d.shape, **chunk[i])
+        _create_array(out, str(i), shape=d.shape, **opts)
         out[str(i)][:] = d
 
     # write xarray metadata
@@ -653,6 +689,14 @@ def cli(args=None):
              'layer in neuroglancer. Chunked by default.'
     )
     parser.add_argument(
+        '--shard', type=int, default=None, help='Spatial shard size.')
+    parser.add_argument(
+        '--unshard-channels', action='store_true',
+        help='Save all channels in a single shard.')
+    parser.add_argument(
+        '--unshard-time', action='store_true',
+        help='Save all timepoints in a single shard.')
+    parser.add_argument(
         '--levels', type=int, default=-1,
         help='Number of levels in the pyramid. '
              'If -1 (default), use as many levels as possible.')
@@ -697,6 +741,9 @@ def cli(args=None):
         chunk=args.chunk,
         chunk_channel=0 if args.unchunk_channels else 1,
         chunk_time=0 if args.unchunk_time else 1,
+        shard=args.shard,
+        shard_channel=0 if args.unshard_channels else 1,
+        shard_time=0 if args.unshard_time else 1,
         nb_levels=args.levels,
         method=args.method,
         fill_value=args.fill,

@@ -124,14 +124,12 @@ def _create_array(
         elif dimension_separator == '/' and out.metadata.zarr_format == 3:
             pass
         else:
-            from zarr.core.chunk_key_encodings import (ChunkKeyEncoding,
-                                                       ChunkKeyEncodingParams)
-            dimension_separator = ChunkKeyEncoding.from_dict(
-                ChunkKeyEncodingParams(
-                    name="default" if out.metadata.zarr_format == 3 else "v2",
-                    separator=dimension_separator))
+            from zarr.core.chunk_key_encodings import ChunkKeyEncodingParams
+            dimension_separator = ChunkKeyEncodingParams(
+                name="default" if out.metadata.zarr_format == 3 else "v2",
+                separator=dimension_separator)
 
-        kwargs["chunk_key_encoding"] = dimension_separator
+            kwargs["chunk_key_encoding"] = dimension_separator
 
     if pyzarr_version == 3:
         data = kwargs.pop("data", None)
