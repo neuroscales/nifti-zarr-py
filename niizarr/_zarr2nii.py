@@ -59,12 +59,22 @@ def _ome2affine(ome, level=0):
     return affine
 
 
-def default_nifti_header(inp0: zarr.Array, ome):
+def default_nifti_header(inp0: zarr.Array, ome: dict):
+    """
+    Generate a default nifti header.
+
+    Parameters
+    ----------
+    inp0: zarr.Array
+        Input array.
+    ome: dict
+        ome-zarr metadata.
+    """
     # not a nifti-zarr -> create nifti header on the fly
     if any(x > 2 ** 15 for x in inp0.shape):
-        NiftiHeader, NiftiImage = Nifti2Header, Nifti2Image
+        NiftiHeader = Nifti2Header
     else:
-        NiftiHeader, NiftiImage = Nifti1Header, Nifti1Image
+        NiftiHeader = Nifti1Header
     niiheader = NiftiHeader()
     if ome:
         affine = _ome2affine(ome)
@@ -99,7 +109,7 @@ def default_nifti_header(inp0: zarr.Array, ome):
     niiheader.set_qform(affine)
     niiheader.set_sform(affine)
     niiheader.set_xyzt_units("mm", "sec")
-    return niiheader, NiftiImage
+    return niiheader
 
 
 def zarr2nii(
@@ -165,7 +175,13 @@ def zarr2nii(
     # --------------------------
 
     if not is_group or 'nifti' not in inp:
-        niiheader, NiftiImage = default_nifti_header(inp0, ome)
+        niiheader = default_nifti_header(inp0, ome)
+        if isinstance(niiheader, Nifti2Header):
+            NiftiImage = Nifti2Image
+        elif isinstance(niiheader, Nifti1Header):
+            NiftiImage = Nifti1Image
+        else:
+            raise ValueError("Unrecognized nifti header.")
     else:
         header = bin2nii(np.asarray(inp['nifti']).tobytes())
         NiftiHeader, NiftiImage = get_nibabel_klass(header)
