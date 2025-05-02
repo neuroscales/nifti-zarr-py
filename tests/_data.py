@@ -4,6 +4,7 @@ import os
 
 import numpy as np
 import skimage as sk
+from jsondiff import JsonDiffer
 from nibabel import Nifti1Image, Nifti2Image
 
 klass_map = {
@@ -57,23 +58,7 @@ def is_same(dir1, dir2):
 
 def compare_json_objects(obj1, obj2):
     """Recursively compare two JSON objects."""
-    if isinstance(obj1, dict) and isinstance(obj2, dict):
-        if obj1.keys() != obj2.keys():
-            return False
-        for key in obj1:
-            if not compare_json_objects(obj1[key], obj2[key]):
-                return False
-    elif isinstance(obj1, list) and isinstance(obj2, list):
-        if len(obj1) != len(obj2):
-            return False
-        for i in range(len(obj1)):
-            if not compare_json_objects(obj1[i], obj2[i]):
-                return False
-    else:
-        if obj1 != obj2:
-            return False
-    return True
-
+    return JsonDiffer().diff(obj1, obj2, exclude_paths=["compressor.typesize"])
 
 def compare_zarr_archives(path1, path2):
     """
@@ -104,10 +89,12 @@ def compare_zarr_archives(path1, path2):
                             f"Error decoding JSON in {file_path1} or {file_path2}: {e}")
                         return False
 
-                    if not compare_json_objects(json1, json2):
+                    diff = compare_json_objects(json1, json2)
+                    if diff:
                         print(f"Mismatch found in {file_name} at {relative_path}")
                         print(json1)
                         print(json2)
+                        print(diff)
                         return False
             else:
                 # If one file exists and the other does not
@@ -122,7 +109,6 @@ def compare_zarr_archives(path1, path2):
 # This script generates trusted test data.
 if __name__ == '__main__':
     from niizarr import *
-    import zarr
 
     input_files = ["data/example4d.nii.gz", "data/example_nifti2.nii.gz"]
     for input_file in input_files:
