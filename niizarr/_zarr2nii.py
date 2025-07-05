@@ -1,6 +1,7 @@
 import argparse
 import io
 import sys
+from argparse import ArgumentDefaultsHelpFormatter
 from os import PathLike
 from typing import Any, Literal, Optional, Union
 
@@ -289,7 +290,8 @@ def zarr2nii(
 def cli(args=None):
     """Command-line entrypoint"""
     parser = argparse.ArgumentParser(
-        'zarr2nii', description='Convert nifti to nifti-zarr.')
+        'zarr2nii', description='Convert nifti to nifti-zarr.',
+        formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         'input', help='Input zarr directory.')
     parser.add_argument(
