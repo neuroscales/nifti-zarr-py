@@ -17,7 +17,7 @@ ROOT = op.join(HERE, "..")
 class TestJSONValidation(unittest.TestCase):
 
     def setUp(self):
-        self.schema_file = op.join(ROOT, "nifti-zarr-schema-1.0.rc1.json")
+        self.schema_file = op.join(ROOT, "nifti-zarr-schema/nifti-zarr-schema-1.0.rc1.json")
         with open(self.schema_file) as f:
             self.schema = json.load(f)
 

@@ -4,6 +4,7 @@ import json
 import math
 import re
 import sys
+from argparse import ArgumentDefaultsHelpFormatter
 from typing import (
     Literal, Union, List, Optional, Callable, Generator, Any, Tuple
 )
@@ -507,7 +508,7 @@ def nii2zarr(
         elif np.issubdtype(data.dtype, np.bool_):
             fill_value = bool(fill_value)
 
-    
+
     # Fix array shape
     nbatch = data.ndim - 3
     if data.ndim == 5:
@@ -585,7 +586,7 @@ def nii2zarr(
     # Prepare array metadata at each level
     compressor = _make_compressor(compressor, zarr_version=zarr_version,
                                   **compressor_options)
-    
+
     chunk = tuple(chunk) if isinstance(chunk, (list, tuple)) else (chunk,)
     chunk = chunk + chunk[-1:] * max(0, 3 - len(chunk)) + chunk_tc
     chunk = tuple(chunk[i] for i in perm)
@@ -632,7 +633,8 @@ def nii2zarr(
 def cli(args=None):
     """    Command-line entrypoint"""
     parser = argparse.ArgumentParser(
-        'nii2zarr', description='Convert nifti to nifti-zarr.')
+        'nii2zarr', description='Convert nifti to nifti-zarr.',
+        formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         'input', help='Input nifti file.')
     parser.add_argument(
