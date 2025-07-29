@@ -60,7 +60,7 @@ def _ome2affine(ome, level=0):
     return affine
 
 
-def default_nifti_header(inp0: zarr.Array, ome: dict):
+def default_nifti_header(inp0: zarr.Array, ome: dict) -> Union[Nifti1Header, Nifti2Header]:
     """
     Generate a default nifti header.
 
