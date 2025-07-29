@@ -18,7 +18,7 @@ authors:
   - family-names: Chai
     given-names: Kaidong
     orcid: https://orcid.org/0009-0001-4654-4092
-    affiliation: "Martinos Center, Massachusetts General Hospital, Boston, MA, USA"
+    affiliation: "Athinoula A. Martinos Center for Biomedical Imaging, Massachusetts General Hospital, Boston, MA, USA"
   - family-names: Gunalan
     given-names: Kabilar
     orcid: https://orcid.org/0000-0001-6964-4865
@@ -33,7 +33,7 @@ authors:
     affiliation: "McGovern Institute for Brain Research, Massachusetts Institute of Technology, Cambridge, MA, USA; Department of Otolaryngology, Harvard Medical School, Boston, MA, USA"
   - family-names: Yendiki
     given-names: Anastasia
-    affiliation: "Martinos Center, Massachusetts General Hospital, Boston, MA, USA; Department of Radiology, Harvard Medical School, Boston, MA, USA"
+    affiliation: "Athinoula A. Martinos Center for Biomedical Imaging, Massachusetts General Hospital, Boston, MA, USA; Department of Radiology, Harvard Medical School, Boston, MA, USA"
   ## When contributing, please copy and uncomment the following lines
   # - family-names: 
   #   given-names: 
