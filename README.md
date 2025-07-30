@@ -98,3 +98,11 @@ optional arguments:
   -h, --help     Show this help message and exit.
   --level LEVEL  Pyramid level to extract (default: 0 = finest).
 ```
+
+## Citation
+
+If your project utilizes the `nifti-zarr-py` package, please cite the following DOI:
+
+<a href="https://doi.org/10.5281/zenodo.16575942">
+  <img src="https://zenodo.org/badge/DOI/10.5281/zenodo.16575942.svg" alt="zenodo">
+</a>
