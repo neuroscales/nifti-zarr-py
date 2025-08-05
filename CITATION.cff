@@ -1,0 +1,42 @@
+cff-version: 1.2.0
+title: "nifti-zarr-py: Implementation of the NIfTI-Zarr specification in Python"
+url: https://github.com/neuroscales/nifti-zarr-py
+license: MIT
+type: software
+keywords:
+  - nifti
+  - neuroimaging
+  - zarr
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.16575942
+authors:
+  - family-names: Balbastre
+    given-names: Yaël
+    orcid: https://orcid.org/0000-0001-8758-9978
+    affiliation: "University College London, London, UK"
+  - family-names: Chai
+    given-names: Kaidong
+    orcid: https://orcid.org/0009-0001-4654-4092
+    affiliation: "Athinoula A. Martinos Center for Biomedical Imaging, Massachusetts General Hospital, Boston, MA, USA"
+  - family-names: Gunalan
+    given-names: Kabilar
+    orcid: https://orcid.org/0000-0001-6964-4865
+    affiliation: "McGovern Institute for Brain Research, Massachusetts Institute of Technology, Cambridge, MA, USA"
+  - family-names: Pérez-García
+    given-names: Fernando
+    orcid: https://orcid.org/0000-0001-9090-3024
+    affiliation: "Microsoft Research, Cambridge, UK"
+  - family-names: Ghosh
+    given-names: Satrajit
+    orcid: https://orcid.org/0000-0002-5312-6729
+    affiliation: "McGovern Institute for Brain Research, Massachusetts Institute of Technology, Cambridge, MA, USA; Department of Otolaryngology, Harvard Medical School, Boston, MA, USA"
+  - family-names: Yendiki
+    given-names: Anastasia
+    orcid: https://orcid.org/0000-0003-1386-3828
+    affiliation: "Athinoula A. Martinos Center for Biomedical Imaging, Massachusetts General Hospital, Boston, MA, USA; Department of Radiology, Harvard Medical School, Boston, MA, USA"
+  ## When contributing, please copy and uncomment the following lines
+  # - family-names: 
+  #   given-names: 
+  #   orcid: https://orcid.org/
+  #   affiliation: 
