@@ -292,6 +292,8 @@ def write_ome_metadata(
     shape0 = shapes[0]
 
     # 5) Build the multiscales dict
+    space_unit = space_unit or "millimeter"
+    time_unit = time_unit or "second"
     ms: dict = {
         "version": ome_version,
         "name": name,
@@ -484,15 +486,30 @@ def nii2zarr(
 
     out = _open_zarr(out, zarr_version=zarr_version)
 
-    if no_time and len(inp.shape) > 3:
-        inp = Nifti1Image(inp.dataobj[:, :, :, None], inp.affine, inp.header)
+    # If the no_time option is used:
+    # - if the 4-th dimension is a singleton, we assume it is the time
+    #   dimension, and squeeze it from the array before saving it to zarr.
+    # - If the 4-th dimension is not a singleton, we add a singleton
+    #   dimension in the header, si that it follows the specification,
+    #   but squeeze it from the array before saving it to zarr.
+
+    nbheader = inp.header
+    if no_time and len(inp.shape) > 3 and inp.shape[3] != 1:
+        # add singleton time dimension
+        nbheader = Nifti1Image(
+            inp.dataobj[:, :, :, None], inp.affine, inp.header
+        ).header
+
     # nibabel consumed these two values
     if hasattr(inp.dataobj, "_slope") and hasattr(inp.dataobj, "_inter"):
-        inp.header.set_slope_inter(inp.dataobj._slope, inp.dataobj._inter)
+        nbheader.set_slope_inter(inp.dataobj._slope, inp.dataobj._inter)
 
-    header = bin2nii(inp.header.structarr.tobytes())
-    byteorder_swapped = inp.header.endianness != SYS_BYTEORDER
-    jsonheader = nii2json(header, len(inp.header.extensions) != 0)
+    # Compute JSON version of the nifti header
+    # NOTE
+    #   This is not the version that gets written up. This is only
+    #   used to obtain well-formatted metadata such as intent, voxel size
+    #   or data type.
+    jsonheader = nii2json(nbheader)
 
     if hasattr(inp.dataobj, "get_unscaled"):
         data = np.asarray(inp.dataobj.get_unscaled())
@@ -507,7 +524,6 @@ def nii2zarr(
             fill_value = int(fill_value)
         elif np.issubdtype(data.dtype, np.bool_):
             fill_value = bool(fill_value)
-
 
     # Fix array shape
     nbatch = data.ndim - 3
@@ -572,6 +588,7 @@ def nii2zarr(
     # Fix data type
     # If nifti was swapped when loading it, we want to swapped it back
     # to make it as same as before
+    byteorder_swapped = inp.header.endianness != SYS_BYTEORDER
     byteorder = SYS_BYTEORDER_SWAPPED if byteorder_swapped else SYS_BYTEORDER
     data_type = JNIFTI_ZARR[jsonheader['DataType']]
     if isinstance(data_type, tuple):
@@ -626,7 +643,7 @@ def nii2zarr(
         ome_version=ome_version
     )
 
-    write_nifti_header(out, inp.header)
+    write_nifti_header(out, nbheader)
     return
 
 
@@ -654,8 +671,7 @@ def cli(args=None):
         '--unchunk-time', action='store_true',
         help='Save all timepoints in a single chunk.'
              'Unchunk if you want to display all timepoints as a single RGB '
-             'layer in neuroglancer. Chunked by default.'
-    )
+             'layer in neuroglancer. Chunked by default.')
     parser.add_argument(
         '--shard', type=int, default=None, help='Spatial shard size.')
     parser.add_argument(
@@ -683,19 +699,17 @@ def cli(args=None):
         '--no-label', action='store_false', dest='label',
         help='Not a segmentation volume.')
     parser.add_argument(
-        '--no-time', action='store_true', help='No time dimension.')
+        '--no-time', action='store_true',
+        help='No time dimension.')
     parser.add_argument(
         '--no-pyramid-axis', choices=('x', 'y', 'z'),
-        help='Thick slice axis that should not be downsampled.'
-    )
+        help='Thick slice axis that should not be downsampled.')
     parser.add_argument(
         '--zarr-version', type=int, default=2, choices=(2, 3),
-        help='Zarr format version.'
-    )
+        help='Zarr format version.')
     parser.add_argument(
         '--ome-version', type=str, default="0.4", choices=("0.4", "0.5"),
-        help='OME-Zarr specification version.'
-    )
+        help='OME-Zarr specification version.')
 
     args = args or sys.argv[1:]
     args = parser.parse_args(args)
