@@ -651,6 +651,7 @@ def nii2zarr(
         ome_group = ome_zarr_models.open_ome_zarr(out)
     except Exception as e:
         print(f"An unexpected error occurred:\n{e}")
+        sys.exit(1)
     else:
         return
 
