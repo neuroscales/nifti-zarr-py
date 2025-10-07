@@ -11,14 +11,15 @@ from typing import (
 
 import nibabel as nib
 import numpy as np
-import zarr.storage
+import zarr
 from nibabel.nifti1 import Nifti1Header, Nifti1Image
 from nibabel.nifti2 import Nifti2Header, Nifti2Image
 from numpy import ndarray
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._compat import (
-    _make_compressor, _open_zarr, _create_array, _load_nifti_from_stream, pyzarr_version
+    _make_compressor, _open_zarr, _create_array, _load_nifti_from_stream,
+    pyzarr_version
 )
 from ._header import (
     UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS,
