@@ -63,6 +63,9 @@ jobs:
         run: |
           python -m pip install -U pip
           python -m pip install -U "numpy${{ matrix.numpy-version }}" "zarr${{ matrix.zarr-version }}" "nibabel${{ matrix.nibabel-version }}" "scikit-image${{ matrix.ski-version }}" "numcodecs${{ matrix.numcodecs-version }}" "dask${{ matrix.dask-version }}"
+          if [ "${{ matrix.ome-zarr-models }}" != "" ]; then
+            python -m pip install -U "ome-zarr-models${{ matrix.ome-zarr-models }}"
+          fi
 
       - name: Install nifti-zarr
         run: python -m pip install ".[test]"
