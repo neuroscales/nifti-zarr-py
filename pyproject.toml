@@ -17,7 +17,7 @@ dependencies = [
     "nibabel >= 3",
     "dask[array] >= 2020",
     "numpy >= 1.18",
-    "numcodecs >= 0.9",
+    "numcodecs >= 0.10.0",
     "scikit-image >= 0.19.2",
     "packaging >= 19.0"
 ]
