@@ -417,6 +417,7 @@ def nii2zarr(
         compressor_options: dict = {},
         zarr_version: Literal[2, 3] = 2,
         ome_version: Literal["0.4", "0.5"] = "0.4",
+        validate: bool = False,
 ) -> None:
     """
     Convert a nifti file to nifti-zarr.
@@ -470,6 +471,8 @@ def nii2zarr(
         Zarr format version.
     ome_version : {"0.4", "0.5"}, optional
         OME-Zarr version.
+    validate : bool, optional
+        Validate the Zarr with the `ome-zarr-models` package.
 
     Returns
     -------
@@ -649,7 +652,7 @@ def nii2zarr(
 
     write_nifti_header(out, nbheader)
 
-    if 'ome_zarr_models' in globals():
+    if validate and 'ome_zarr_models' in globals():
         try:
             ome_group = ome_zarr_models.open_ome_zarr(out)
         except Exception as e:
@@ -722,6 +725,9 @@ def cli(args=None):
     parser.add_argument(
         '--ome-version', type=str, default="0.4", choices=("0.4", "0.5"),
         help='OME-Zarr specification version.')
+    parser.add_argument(
+        '--validate', action='store_true',
+        help='Validate the Zarr with the `ome-zarr-models` package.')
 
     args = args or sys.argv[1:]
     args = parser.parse_args(args)
@@ -747,4 +753,5 @@ def cli(args=None):
         no_pyramid_axis=args.no_pyramid_axis,
         zarr_version=args.zarr_version,
         ome_version=args.ome_version,
+        validate=args.validate,
     )
