@@ -1,4 +1,4 @@
-# Example implementation of the nifti-zarr specification in Python
+# nifti-zarr-py: Implementation of the NIfTI-Zarr specification in Python
 
 ## Installation
 
