@@ -11,7 +11,6 @@ from typing import (
 
 import nibabel as nib
 import numpy as np
-import zarr
 import zarr.storage
 from nibabel.nifti1 import Nifti1Header, Nifti1Image
 from nibabel.nifti2 import Nifti2Header, Nifti2Image
