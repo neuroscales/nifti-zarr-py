@@ -652,17 +652,16 @@ def nii2zarr(
 
     write_nifti_header(out, nbheader)
 
-    if validate:
-        if 'ome_zarr_models' in globals():
-            try:
-                ome_group = ome_zarr_models.open_ome_zarr(out)
-            except Exception as e:
-                print(f"An unexpected error occurred:\n{e}")
-                sys.exit(1)
-        else:
-            print("The `ome-zarr-models` package is not installed, "
-                  "cannot validate the Zarr.")
+    if validate and 'ome_zarr_models' in globals():
+        try:
+            ome_group = ome_zarr_models.open_ome_zarr(out)
+        except Exception as e:
+            print(f"An unexpected error occurred:\n{e}")
             sys.exit(1)
+    elif validate:
+        print("The `ome-zarr-models` package is not installed, "
+                "cannot validate the Zarr.")
+        sys.exit(1)
 
     return
 
