@@ -18,7 +18,8 @@ from numpy import ndarray
 from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._compat import (
-    _make_compressor, _open_zarr, _create_array, _load_nifti_from_stream, pyzarr_version
+    _make_compressor, _open_zarr, _create_array, _load_nifti_from_stream,
+    pyzarr_version
 )
 from ._header import (
     UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS,
@@ -227,7 +228,7 @@ def write_ome_metadata(
     levels: Optional[int] = None,
     no_pool: Optional[int] = None,
     multiscales_type: str = "",
-    ome_version: Literal["0.4", "0.5"] = "0.4"
+    ome_version: Literal["0.4", "0.5"] = "0.4",
 ) -> None:
     """
     Write OME metadata into Zarr.
@@ -299,7 +300,15 @@ def write_ome_metadata(
         "name": name,
         "type": multiscales_type or f"median window {'x'.join(['2']*sdim)}",
         "axes": [
-            dict(name=a, type=t, **({"unit": space_unit} if t=="space" else {"unit": time_unit} if t=="time" else {}))
+            dict(
+                name=a,
+                type=t,
+                **(
+                    {"unit": space_unit} if t == "space" else
+                    {"unit": time_unit} if t == "time" else
+                    {}
+                )
+            )
             for a, t in zip(axes, types)
         ],
         "datasets": [],
@@ -346,20 +355,20 @@ def write_ome_metadata(
         ms["datasets"].append({
             "path": str(n),
             "coordinateTransformations": [
-                {"type":"scale",       "scale": scale},
-                {"type":"translation", "translation": translation},
+                {"type": "scale",       "scale": scale},
+                {"type": "translation", "translation": translation},
             ]
         })
 
     # 8) Add global time‐scale transformation
-    tscale = [time_scale if t=="time" else 1.0 for t in types]
-    ms["coordinateTransformations"] = [{"type":"scale", "scale": tscale}]
+    tscale = [time_scale if t == "time" else 1.0 for t in types]
+    ms["coordinateTransformations"] = [{"type": "scale", "scale": tscale}]
 
     # 9) Write into Zarr attributes
     omz.attrs["multiscales"] = [ms]
     if ome_version == "0.5":
         omz.attrs["ome"] = {"multiscales": [ms]}
-    elif ome_version not in {"0.4","0.5"}:
+    elif ome_version not in {"0.4", "0.5"}:
         raise ValueError(f"Unsupported ome_version {ome_version}")
 
 
@@ -394,25 +403,27 @@ def write_nifti_header(
 
 
 def nii2zarr(
-        inp: Union[Nifti1Image, Nifti2Image, Any],
-        out: Union[str, Any],
-        *,
-        chunk: Union[int, Tuple[int]] = 64,
-        chunk_channel: int = 1,
-        chunk_time: int = 1,
-        shard: Optional[Union[int, Tuple[int]]] = None,
-        shard_channel: Optional[int] = None,
-        shard_time: Optional[int] = None,
-        nb_levels: int = -1,
-        method: Literal['gaussian', 'laplacian'] = 'gaussian',
-        label: Optional[bool] = None,
-        no_time: bool = False,
-        no_pyramid_axis: Optional[Union[str, int]] = None,
-        fill_value: Optional[Union[int, float, complex]] = None,
-        compressor: Literal['blosc', 'zlib'] = 'blosc',
-        compressor_options: dict = {},
-        zarr_version: Literal[2, 3] = 2,
-        ome_version: Literal["0.4", "0.5"] = "0.4",
+    inp: Union[Nifti1Image, Nifti2Image, Any],
+    out: Union[str, Any],
+    *,
+    chunk: Union[int, Tuple[int]] = 64,
+    chunk_channel: int = 1,
+    chunk_time: int = 1,
+    shard: Optional[Union[int, Tuple[int]]] = None,
+    shard_channel: Optional[int] = None,
+    shard_time: Optional[int] = None,
+    nb_levels: int = -1,
+    method: Literal['gaussian', 'laplacian'] = 'gaussian',
+    label: Optional[bool] = None,
+    no_time: bool = False,
+    no_pyramid_axis: Optional[Union[str, int]] = None,
+    fill_value: Optional[Union[int, float, complex]] = None,
+    compressor: Literal['blosc', 'zlib'] = 'blosc',
+    compressor_options: dict = {},
+    zarr_version: Literal[2, 3] = 2,
+    ome_version: Literal["0.4", "0.5"] = "0.4",
+    dtype: Union[str, np.dtype, None] = None,
+    casting: str = "unsafe",
 ) -> None:
     """
     Convert a nifti file to nifti-zarr.
@@ -466,6 +477,10 @@ def nii2zarr(
         Zarr format version.
     ome_version : {"0.4", "0.5"}, optional
         OME-Zarr version.
+    dtype : str | np.dtype, optional
+        If provided, cast data to this dtype.
+    casting : {'no', 'equiv', 'safe', 'same_kind', 'unsafe'}, optional
+        Controls what kind of data casting may occur.
 
     Returns
     -------
@@ -515,6 +530,14 @@ def nii2zarr(
         data = np.asarray(inp.dataobj.get_unscaled())
     else:
         data = np.asarray(inp.dataobj)
+
+    # if dtype is provided, cast
+    if dtype is not None and np.dtype(dtype) != np.dtype(data.dtype):
+        dtype = np.dtype(dtype)
+        data = data.astype(dtype, casting=casting)
+        jnifti_dtype = f"{dtype.kind}{dtype.itemsize}"
+        jsonheader['DataType'] = JNIFTI_ZARR[jnifti_dtype]
+
     if fill_value:
         if np.issubdtype(data.dtype, np.complexfloating):
             fill_value = complex(fill_value)
