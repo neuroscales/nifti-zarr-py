@@ -60,7 +60,9 @@ def _ome2affine(ome, level=0):
     return affine
 
 
-def default_nifti_header(inp0: zarr.Array, ome: dict) -> Union[Nifti1Header, Nifti2Header]:
+def default_nifti_header(
+    inp0: zarr.Array, ome: dict
+) -> Union[Nifti1Header, Nifti2Header]:
     """
     Generate a default nifti header.
 
@@ -152,30 +154,35 @@ def zarr2nii(
     # prepare metadata
     # ----------------
 
+    # Get OME metadata (if exists)
+    ome = inp.attrs.get("ome", inp.attrs).get("multiscales", None)
+
     # Compute number of levels
     if isinstance(inp, zarr.Group):
         is_group = True
-        inp0 = inp["0"]
-        nb_levels = 0
-        while str(nb_levels) in inp.keys():
-            nb_levels += 1
-        if nb_levels == 0:
-            raise ValueError("This is a Zarr group but not an OME-Zarr.")
-        if level < 0:
-            level = nb_levels + level
-        if level >= nb_levels:
-            raise IndexError(
-                "Pyramid level does not exist. Number of levels:",
-                nb_levels
-            )
+        if ome:
+            levels = ome[0]["datasets"]
+            nb_levels = len(levels)
+        else:
+            nb_levels = 0
+            while str(nb_levels) in inp.keys():
+                nb_levels += 1
+            if nb_levels == 0:
+                raise ValueError("This is a Zarr group but not an OME-Zarr.")
+            if level < 0:
+                level = nb_levels + level
+            if level >= nb_levels:
+                raise IndexError(
+                    "Pyramid level does not exist. Number of levels:",
+                    nb_levels
+                )
+            levels = [{"path": str(level) for level in range(nb_levels)}]
+        inp0 = inp[levels[0]["path"]]
     else:
         is_group = False
         inp0 = inp
         if level not in (0, -1):
             raise IndexError("Pyramid level does not exist -- not an OME zarr")
-
-    # get OME metadata (if exists)
-    ome = inp.attrs.get("ome", inp.attrs).get("multiscales", None)
 
     # --------------------------
     # read or build nifti header
@@ -246,7 +253,7 @@ def zarr2nii(
 
     # load/map array with dask
     if is_group:
-        array = dask.array.from_zarr(inp[f'{level}'])
+        array = dask.array.from_zarr(inp[levels[level]["path"]])
     else:
         array = dask.array.from_zarr(inp)
 

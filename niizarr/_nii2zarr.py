@@ -11,7 +11,7 @@ from typing import (
 
 import nibabel as nib
 import numpy as np
-import zarr.storage
+import zarr
 from nibabel.nifti1 import Nifti1Header, Nifti1Image
 from nibabel.nifti2 import Nifti2Header, Nifti2Image
 from numpy import ndarray
@@ -27,6 +27,10 @@ from ._header import (
     SYS_BYTEORDER_SWAPPED
 )
 
+try:
+    import ome_zarr_models
+except ImportError:
+    pass
 
 def nii2json(header: Union[Nifti1Header, Nifti2Header, ndarray],
              extensions: bool = False) -> dict:
@@ -422,6 +426,7 @@ def nii2zarr(
     compressor_options: dict = {},
     zarr_version: Literal[2, 3] = 2,
     ome_version: Literal["0.4", "0.5"] = "0.4",
+    validate: bool = False,
     dtype: Union[str, np.dtype, None] = None,
     casting: str = "unsafe",
 ) -> None:
@@ -477,6 +482,8 @@ def nii2zarr(
         Zarr format version.
     ome_version : {"0.4", "0.5"}, optional
         OME-Zarr version.
+    validate : bool, optional
+        Validate the Zarr with the `ome-zarr-models` package.
     dtype : str | np.dtype, optional
         If provided, cast data to this dtype.
     casting : {'no', 'equiv', 'safe', 'same_kind', 'unsafe'}, optional
@@ -667,6 +674,18 @@ def nii2zarr(
     )
 
     write_nifti_header(out, nbheader)
+
+    if validate and 'ome_zarr_models' in globals():
+        try:
+            ome_group = ome_zarr_models.open_ome_zarr(out)
+        except Exception as e:
+            print(f"An unexpected error occurred:\n{e}")
+            sys.exit(1)
+    elif validate:
+        print("The `ome-zarr-models` package is not installed, "
+                "cannot validate the Zarr.")
+        sys.exit(1)
+
     return
 
 
@@ -733,6 +752,9 @@ def cli(args=None):
     parser.add_argument(
         '--ome-version', type=str, default="0.4", choices=("0.4", "0.5"),
         help='OME-Zarr specification version.')
+    parser.add_argument(
+        '--validate', action='store_true',
+        help='Validate the Zarr with the `ome-zarr-models` package.')
 
     args = args or sys.argv[1:]
     args = parser.parse_args(args)
@@ -758,4 +780,5 @@ def cli(args=None):
         no_pyramid_axis=args.no_pyramid_axis,
         zarr_version=args.zarr_version,
         ome_version=args.ome_version,
+        validate=args.validate,
     )
