@@ -39,6 +39,9 @@ usage: nii2zarr [-h]
                 [--chunk CHUNK]
                 [--unchunk-channels]
                 [--unchunk-time]
+                [--shard SHARD]
+                [--unshard-channels]
+                [--unshard-time]
                 [--levels LEVELS]
                 [--method {gaussian,laplacian}]
                 [--fill FILL]
@@ -70,6 +73,9 @@ optional arguments:
                                 Unchunk if you want to display all timepoints
                                 as a single RGB layer in neuroglancer.
                                 Chunked by default.
+  --shard SHARD                 Spatial shard size.
+  --unshard-channels            Save all channels in a single shard.
+  --unshard-time                Save all timepoints in a single shard.
   --levels LEVELS               Number of levels in the pyramid.
                                 If -1 (default), use as many levels as possible.
   --method {gaussian,laplacian} Pyramid method.
