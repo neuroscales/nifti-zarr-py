@@ -1,4 +1,5 @@
-[![PyPI version](https://badge.fury.io/py/nifti-zarr.svg)](https://pypi.python.org/pypi/nifti-zarr/)
+[![PyPI](https://badge.fury.io/py/nifti-zarr.svg)](https://pypi.python.org/pypi/nifti-zarr/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16575942.svg)](https://doi.org/10.5281/zenodo.16575942)
 
 # nifti-zarr-py: Implementation of the NIfTI-Zarr specification in Python
 
