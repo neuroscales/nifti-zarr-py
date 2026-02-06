@@ -1,3 +1,5 @@
+[![PyPI version](https://badge.fury.io/py/nifti-zarr.svg)](https://pypi.python.org/pypi/nifti-zarr/)
+
 # nifti-zarr-py: Implementation of the NIfTI-Zarr specification in Python
 
 ## Installation
