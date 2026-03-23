@@ -1,4 +1,7 @@
-# Example implementation of the nifti-zarr specification in Python
+[![PyPI](https://badge.fury.io/py/nifti-zarr.svg)](https://pypi.python.org/pypi/nifti-zarr/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16575942.svg)](https://doi.org/10.5281/zenodo.16575942)
+
+# nifti-zarr-py: Implementation of the NIfTI-Zarr specification in Python
 
 ## Installation
 
@@ -49,6 +52,7 @@ usage: nii2zarr [-h]
                 [--no-pyramid-axis {x,y,z}]
                 [--zarr-version {2,3}]
                 [--ome-version {0.4,0.5}]
+                [--validate]
                 input [output]
 
 Convert nifti to nifti-zarr.
@@ -80,6 +84,7 @@ optional arguments:
   --no-pyramid-axis {x,y,z}     Thick slice axis that should not be downsampled.
   --zarr-version {2,3}          Zarr format version.
   --ome-version {0.4,0.5}       OME-Zarr specification version.
+  --validate                    Validate the Zarr with the `ome-zarr-models` package.
 ```
 
 ### NIfTI-Zarr to NIfTI
