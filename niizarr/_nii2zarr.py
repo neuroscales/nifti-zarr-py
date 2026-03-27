@@ -26,11 +26,16 @@ from ._header import (
     bin2nii, get_magic_string, SYS_BYTEORDER, JNIFTI_ZARR,
     SYS_BYTEORDER_SWAPPED
 )
+from ._nii2ome import nii2ome, ome_add_levels
+from ._ome import Version, ValidationError, OMEAttributes
+from ._version import __version__ as niizarr_version
 
 try:
     import ome_zarr_models
+    HAS_OME_ZARR_MODELS = True
 except ImportError:
-    pass
+    HAS_OME_ZARR_MODELS = False
+
 
 def nii2json(header: Union[Nifti1Header, Nifti2Header, ndarray],
              extensions: bool = False) -> dict:
@@ -220,6 +225,106 @@ def _make_pyramid3d(
         yield np.stack(level).reshape(batch + level[0].shape)
 
 
+def write_ome_metadata_from_nifti(
+    omz: zarr.Group,
+    header: Union[Nifti1Header, Nifti2Header],
+    aligns: Union[str, int, List[str], List[int]] = 2,
+    ome_version: str = "0.6",
+    named_systems: bool = False,
+    metadata: Optional[dict] = None,
+) -> None:
+    """
+    Write OME metadata into Zarr based on a Nifti header.
+
+    Parameters
+    ----------
+    omz : zarr.Group
+        Zarr group to write metadata
+    header : Nifti1Header | Nifti2Header
+        Nifti header object.
+    aligns : [list or dict of] (int | {"center","edge"})
+        Whether the pyramid construction aligns the edges or the centers
+        of the corner voxels. If a (list of) number, assume that a moving
+        window of that size was used.
+    ome_version : str
+        OME-Zarr version to use for the metadata.
+    coded_systems : bool
+        Whether to include NIfTI-coded coordinate systems in the OME metadata.
+        (e.g. "nifti:mni", "nifti:talairach", etc.).
+    metadata : dict, optional
+        Metadata describing the pyramid construction.
+    """
+    version = Version(ome_version)
+    ome = nii2ome(header, ome_version, named_systems)
+    axes = ome["multiscales"][0].get("axes")
+    axes = axes or ome["multiscales"][0]["coordinateSystems"][0]["axes"]
+
+    if isinstance(aligns, dict):
+        aligns = [
+            aligns.get(
+                axis["type"],
+                aligns.get(axis["name"], 2)
+            )
+            for axis in axes
+        ]
+    if not isinstance(aligns, (list, tuple)):
+        aligns = [aligns] * len(axes)
+    aligns = [1] * max(0, len(axes) - len(aligns)) + list(aligns)
+
+    shapes = []
+    lvl = 0
+    while True:
+        key = str(lvl)
+        if key not in omz:
+            break
+        shapes.append(omz[key].shape)
+        lvl += 1
+
+    # Helper to compute per-dimension scale/translation
+    def _factor(a0, aN, align, n):
+        if isinstance(align, str) and align.lower().startswith("e"):
+            factor = (a0 / aN)
+            trans = (factor - 1) * 0.5
+        elif isinstance(align, str) and align.lower().startswith("c"):
+            factor = ((a0 - 1) / (aN - 1))
+            trans = 0.0
+        else:
+            # numeric align: repeated power
+            factor = (align ** n)
+            trans = (factor - 1) * 0.5
+        return factor, trans
+
+    scales, translations = [], []
+    shape0, *shapes = shapes
+    ndim = len(shape0)
+    for n in range(len(shapes)):
+        # compute scale+translation arrays of length ndim
+        scale, translation = [], []
+        for i in range(ndim):
+            s0 = shape0[i]
+            si = shapes[n-1][i]
+            sj = shapes[n][i]
+            if si == sj:
+                # no change from last level → re‐use
+                if n == 1:
+                    s, tr = 1.0, 0.0
+                else:
+                    s, tr = scales[-1][i], translations[-1][i]
+            else:
+                s, tr = _factor(s0, sj, aligns[i], n + 1)
+            scale.append(s)
+            translation.append(tr)
+        scales.append(scale)
+        translations.append(translation)
+
+    ome = ome_add_levels(ome, scales, translations, metadata)
+
+    if version > Version("0.4"):
+        omz.attrs["ome"] = ome
+    else:
+        omz.attrs["multiscales"] = ome["multiscales"]
+
+
 def write_ome_metadata(
     omz: zarr.Group,
     axes: List[str],
@@ -232,7 +337,7 @@ def write_ome_metadata(
     levels: Optional[int] = None,
     no_pool: Optional[int] = None,
     multiscales_type: str = "",
-    ome_version: Literal["0.4", "0.5"] = "0.4"
+    ome_version: str = "0.5"
 ) -> None:
     """
     Write OME metadata into Zarr.
@@ -304,7 +409,13 @@ def write_ome_metadata(
         "name": name,
         "type": multiscales_type or f"median window {'x'.join(['2']*sdim)}",
         "axes": [
-            dict(name=a, type=t, **({"unit": space_unit} if t=="space" else {"unit": time_unit} if t=="time" else {}))
+            dict(
+                name=a,
+                type=t,
+                **(
+                    {"unit": space_unit} if t == "space" else
+                    {"unit": time_unit} if t == "time" else {})
+                )
             for a, t in zip(axes, types)
         ],
         "datasets": [],
@@ -351,26 +462,26 @@ def write_ome_metadata(
         ms["datasets"].append({
             "path": str(n),
             "coordinateTransformations": [
-                {"type":"scale",       "scale": scale},
-                {"type":"translation", "translation": translation},
+                {"type": "scale",       "scale": scale},
+                {"type": "translation", "translation": translation},
             ]
         })
 
     # 8) Add global time‐scale transformation
-    tscale = [time_scale if t=="time" else 1.0 for t in types]
-    ms["coordinateTransformations"] = [{"type":"scale", "scale": tscale}]
+    tscale = [time_scale if t == "time" else 1.0 for t in types]
+    ms["coordinateTransformations"] = [{"type": "scale", "scale": tscale}]
 
     # 9) Write into Zarr attributes
     omz.attrs["multiscales"] = [ms]
     if ome_version == "0.5":
         omz.attrs["ome"] = {"multiscales": [ms]}
-    elif ome_version not in {"0.4","0.5"}:
+    elif ome_version not in {"0.4", "0.5"}:
         raise ValueError(f"Unsupported ome_version {ome_version}")
 
 
 def write_nifti_header(
-        omz: zarr.Group,
-        header: Union[Nifti1Header, Nifti2Header]
+    omz: zarr.Group,
+    header: Union[Nifti1Header, Nifti2Header]
 ) -> None:
     jsonheader = nii2json(header)
     # Write nifti header (binary)
@@ -417,7 +528,8 @@ def nii2zarr(
         compressor: Literal['blosc', 'zlib'] = 'blosc',
         compressor_options: dict = {},
         zarr_version: Literal[2, 3] = 2,
-        ome_version: Literal["0.4", "0.5"] = "0.4",
+        ome_version: str = "0.4",
+        named_systems: bool = False,
         validate: bool = False,
 ) -> None:
     """
@@ -470,8 +582,11 @@ def nii2zarr(
         Options for the compressor.
     zarr_version : {2, 3}, optional
         Zarr format version.
-    ome_version : {"0.4", "0.5"}, optional
+    ome_version : {"0.4", "0.5", "0.6"}, optional
         OME-Zarr version.
+    named_systems : bool, optional
+        Whether to include named coordinate systems in the OME metadata.
+        (Only available if ome_version >= "0.6" or include "+rfc5")
     validate : bool, optional
         Validate the Zarr with the `ome-zarr-models` package.
 
@@ -498,7 +613,7 @@ def nii2zarr(
     # - if the 4-th dimension is a singleton, we assume it is the time
     #   dimension, and squeeze it from the array before saving it to zarr.
     # - If the 4-th dimension is not a singleton, we add a singleton
-    #   dimension in the header, si that it follows the specification,
+    #   dimension in the header, so that it follows the specification,
     #   but squeeze it from the array before saving it to zarr.
 
     nbheader = inp.header
@@ -534,7 +649,6 @@ def nii2zarr(
             fill_value = bool(fill_value)
 
     # Fix array shape
-    nbatch = data.ndim - 3
     if data.ndim == 5:
         perm = [3, 4, 2, 1, 0]
         axes = ['t', 'c', 'z', 'y', 'x']
@@ -639,30 +753,34 @@ def nii2zarr(
     for i in range(len(data)):
         out[str(i)].attrs['_ARRAY_DIMENSIONS'] = ARRAY_DIMENSIONS
 
-    write_ome_metadata(
+    write_ome_metadata_from_nifti(
         out,
-        axes=axes,
-        space_scale=[jsonheader["VoxelSize"][2],
-                     jsonheader["VoxelSize"][1],
-                     jsonheader["VoxelSize"][0]],
-        time_scale=jsonheader["VoxelSize"][3] if nbatch >= 1 else 1.0,
-        space_unit=JNIFTI_ZARR[jsonheader["Unit"]["L"]],
-        time_unit=JNIFTI_ZARR[jsonheader["Unit"]["T"]],
-        ome_version=ome_version
+        header=nbheader,
+        aligns="edges",  # for skimage gaussian/laplacian
+        ome_version=ome_version,
+        named_systems=named_systems,
+        metadata={
+            "type": method,
+            "method": f"skimage.transform.pyramid_{method}",
+            "description": "skimage pyramid generated by nii2zarr",
+            "version": niizarr_version,
+        },
     )
 
     write_nifti_header(out, nbheader)
 
-    if validate and 'ome_zarr_models' in globals():
+    if validate and HAS_OME_ZARR_MODELS:
         try:
-            ome_group = ome_zarr_models.open_ome_zarr(out)
+            ome_zarr_models.open_ome_zarr(out)
         except Exception as e:
-            print(f"An unexpected error occurred:\n{e}")
-            sys.exit(1)
+            raise ValidationError(f"An unexpected error occurred:\n{e}")
     elif validate:
-        print("The `ome-zarr-models` package is not installed, "
-                "cannot validate the Zarr.")
-        sys.exit(1)
+        ome = OMEAttributes.from_json(out.attrs)
+        ome.validate()
+        # raise ValidationError(
+        #     "The `ome-zarr-models` package is not installed, "
+        #     "cannot validate the Zarr."
+        # )
 
     return
 
@@ -728,8 +846,12 @@ def cli(args=None):
         '--zarr-version', type=int, default=2, choices=(2, 3),
         help='Zarr format version.')
     parser.add_argument(
-        '--ome-version', type=str, default="0.4", choices=("0.4", "0.5"),
-        help='OME-Zarr specification version.')
+        '--ome-version', type=str, default="0.4",
+        help='OME-Zarr specification version: {0.4, 0.5, 0.6, ...}.')
+    parser.add_argument(
+        '--named-systems', action='store_true',
+        help='Include named coordinate systems in the OME metadata. '
+             '(Only available if OME version >= "0.6" or includes "+rfc5")')
     parser.add_argument(
         '--validate', action='store_true',
         help='Validate the Zarr with the `ome-zarr-models` package.')
@@ -741,22 +863,28 @@ def cli(args=None):
         print('Output not specified, using input directory')
         args.output = re.sub(r'\.nii(\.gz)?$', '', args.input) + '.nii.zarr'
 
-    nii2zarr(
-        args.input, args.output,
-        chunk=args.chunk,
-        chunk_channel=0 if args.unchunk_channels else 1,
-        chunk_time=0 if args.unchunk_time else 1,
-        shard=args.shard,
-        shard_channel=0 if args.unshard_channels else 1,
-        shard_time=0 if args.unshard_time else 1,
-        nb_levels=args.levels,
-        method=args.method,
-        fill_value=args.fill,
-        compressor=args.compressor,
-        label=args.label,
-        no_time=args.no_time,
-        no_pyramid_axis=args.no_pyramid_axis,
-        zarr_version=args.zarr_version,
-        ome_version=args.ome_version,
-        validate=args.validate,
-    )
+    try:
+        nii2zarr(
+            args.input, args.output,
+            chunk=args.chunk,
+            chunk_channel=0 if args.unchunk_channels else 1,
+            chunk_time=0 if args.unchunk_time else 1,
+            shard=args.shard,
+            shard_channel=0 if args.unshard_channels else 1,
+            shard_time=0 if args.unshard_time else 1,
+            nb_levels=args.levels,
+            method=args.method,
+            fill_value=args.fill,
+            compressor=args.compressor,
+            label=args.label,
+            no_time=args.no_time,
+            no_pyramid_axis=args.no_pyramid_axis,
+            zarr_version=args.zarr_version,
+            ome_version=args.ome_version,
+            named_systems=args.named_systems,
+            validate=args.validate,
+        )
+    except ValidationError as e:
+        print(f"{e}")
+        return 1
+    return 0
