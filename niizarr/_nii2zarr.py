@@ -306,7 +306,7 @@ def write_ome_metadata_from_nifti(
             sj = shapes[n][i]
             if si == sj:
                 # no change from last level → re‐use
-                if n == 1:
+                if n == 0:
                     s, tr = 1.0, 0.0
                 else:
                     s, tr = scales[-1][i], translations[-1][i]

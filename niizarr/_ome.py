@@ -334,7 +334,9 @@ class OrientationType(MyStrEnum):
     anatomical = "anatomical"
 
 
-# --- Schema base ------------------------------------------------------
+# ----------------------------------------------------------------------
+# Schema base
+# ----------------------------------------------------------------------
 
 def _is_strenum(v):
     return isinstance(v, MyStrEnum)
@@ -383,8 +385,12 @@ class ListSerializable(list, JsonSerializable):
         ]
 
 
-# --- Schema -----------------------------------------------------------
+# ----------------------------------------------------------------------
+# Schema
+# ----------------------------------------------------------------------
 
+
+# --- Axes -------------------------------------------------------------
 
 @dataclass
 class Orientation(DictSerializable):
@@ -484,6 +490,9 @@ class Axes(ListSerializable):
     def validate(self, version: Version, strict: bool = False) -> None:
         for axis in self:
             axis.validate(version, strict)
+
+
+# --- Coordinate systems -----------------------------------------------
 
 
 @dataclass
@@ -589,6 +598,8 @@ class CoordinateSystems(ListSerializable):
         for cs in self:
             cs.validate(version, strict)
 
+
+# --- Coordinate transformations ---------------------------------------
 
 class CoordinateTransformationType(str, Enum):
     identity = "identity"
@@ -1197,6 +1208,9 @@ class IntrinsicCoordinateTransformations(CoordinateTransformations):
             )
 
 
+# --- Datasets ---------------------------------------------------------
+
+
 @dataclass
 class Dataset(DictSerializable):
     path: str
@@ -1252,6 +1266,9 @@ class MultiscaleMetadata(DictSerializable):
             args=data.get("args"),
             kwargs=data.get("kwargs")
         )
+
+
+# --- Multiscales ------------------------------------------------------
 
 
 @dataclass
@@ -1344,6 +1361,9 @@ class Multiscales(ListSerializable):
             multiscale.validate(version, strict)
 
 
+# --- OME --------------------------------------------------------------
+
+
 @dataclass
 class OME(DictSerializable):
 
@@ -1365,6 +1385,11 @@ class OME(DictSerializable):
         if version is None:
             version = self.version
         version = Version(version)
+        validate(
+            version > Version("0.3"),
+            "Validator not implemented for OME versions <= 0.3",
+            strict=True
+        )
         validate(
             Version(self.version) == version,
             f"Expected version {version}, got {self.version}"
@@ -1395,7 +1420,7 @@ class OMEAttributes(DictSerializable):
             self.ome.validate(version, strict)
         elif self.multiscales:
             for multiscale in self.multiscales:
-                version = version or multiscale.version
+                version = Version(version or multiscale.version)
                 validate(
                     multiscale.version is not None,
                     "Multiscale version MUST be set"
@@ -1403,9 +1428,14 @@ class OMEAttributes(DictSerializable):
                     strict=True
                 )
                 validate(
-                    multiscale.version == Version(version),
+                    version > Version("0.3"),
+                    "Validator not implemented for OME versions <= 0.3",
+                    strict=True
+                )
+                validate(
+                    multiscale.version == version,
                     f"Expected version {version}, got {multiscale.version}"
                     f"\n{multiscale}",
                     strict=True
                 )
-                multiscale.validate(Version(version), strict)
+                multiscale.validate(version, strict)
