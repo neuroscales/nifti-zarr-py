@@ -7,7 +7,7 @@ from typing import Any, Literal, Optional, Union
 
 import dask.array
 import numpy as np
-import zarr.storage
+import zarr
 from nibabel import (save, load)
 from nibabel.nifti1 import Nifti1Image, Nifti1Header
 from nibabel.nifti2 import Nifti2Image, Nifti2Header
@@ -60,7 +60,9 @@ def _ome2affine(ome, level=0):
     return affine
 
 
-def default_nifti_header(inp0: zarr.Array, ome: dict) -> Union[Nifti1Header, Nifti2Header]:
+def default_nifti_header(
+    inp0: zarr.Array, ome: dict
+) -> Union[Nifti1Header, Nifti2Header]:
     """
     Generate a default nifti header.
 
