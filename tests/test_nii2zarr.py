@@ -32,26 +32,57 @@ class Testnii2zarr(unittest.TestCase):
         self.assertRaises(Exception, nii2zarr, 'non_exist_file.nii', self.temp_dir.name)
 
     def test_input_path(self):
-        nii2zarr(op.join(DATA, "example4d.nii.gz"), self.temp_dir.name, validate=VALIDATE)
+        nii2zarr(
+            op.join(DATA, "example4d.nii.gz"),
+            self.temp_dir.name,
+            validate=VALIDATE,
+            zarr_version=2,
+            ome_version="0.4",
+        )
 
     def test_input_fd(self):
         if V(nib.__version__) < V("5"):
             # nibabel needs to be >= 5 to support from_stream
             return
         with gzip.open(op.join(DATA, "example4d.nii.gz"), "rb") as f:
-            nii2zarr(f, self.temp_dir.name, validate=VALIDATE)
+            nii2zarr(
+                f,
+                self.temp_dir.name,
+                validate=VALIDATE,
+                zarr_version=2,
+                ome_version="0.4",
+            )
 
     def test_input_Nifti1Image(self):
         ni = nib.load(op.join(DATA, "example4d.nii.gz"))
-        nii2zarr(ni, self.temp_dir.name, validate=VALIDATE)
+        nii2zarr(
+            ni,
+            self.temp_dir.name,
+            validate=VALIDATE,
+            zarr_version=2,
+            ome_version="0.4",
+        )
 
     def test_input_Nifti2Image(self):
         ni = nib.load(op.join(DATA, "example_nifti2.nii.gz"))
-        nii2zarr(ni, self.temp_dir.name, validate=VALIDATE)
+        nii2zarr(
+            ni,
+            self.temp_dir.name,
+            validate=VALIDATE,
+            zarr_version=2,
+            ome_version="0.4",
+        )
 
     def test_same_result_nifti1(self):
         written_zarr = op.join(self.temp_dir.name, "example4d.nii.zarr")
-        nii2zarr(op.join(DATA, "example4d.nii.gz"), written_zarr, chunk=64, validate=VALIDATE)
+        nii2zarr(
+            op.join(DATA, "example4d.nii.gz"),
+            written_zarr,
+            chunk=64,
+            validate=VALIDATE,
+            zarr_version=2,
+            ome_version="0.4",
+        )
         self.assertTrue(compare_zarr_archives(written_zarr,
                                               op.join(DATA, "example4d.nii.zarr")))
         written_data = zarr.open(written_zarr)
@@ -62,7 +93,14 @@ class Testnii2zarr(unittest.TestCase):
 
     def test_same_result_nifti2(self):
         written_zarr = op.join(self.temp_dir.name, "example_nifti2.nii.zarr")
-        nii2zarr(op.join(DATA, "example_nifti2.nii.gz"), written_zarr, chunk=64, validate=VALIDATE)
+        nii2zarr(
+            op.join(DATA, "example_nifti2.nii.gz"),
+            written_zarr,
+            chunk=64,
+            validate=VALIDATE,
+            zarr_version=2,
+            ome_version="0.4",
+        )
         self.assertTrue(compare_zarr_archives(written_zarr,
                                               op.join(DATA, "example_nifti2.nii.zarr")))
         written_data = zarr.open(written_zarr)

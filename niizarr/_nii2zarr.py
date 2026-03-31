@@ -416,8 +416,8 @@ def nii2zarr(
         fill_value: Optional[Union[int, float, complex]] = None,
         compressor: Literal['blosc', 'zlib'] = 'blosc',
         compressor_options: dict = {},
-        zarr_version: Literal[2, 3] = 2,
-        ome_version: Literal["0.4", "0.5"] = "0.4",
+        zarr_version: Literal[2, 3] = 3,
+        ome_version: Literal["0.4", "0.5"] = "0.5",
         validate: bool = False,
 ) -> None:
     """

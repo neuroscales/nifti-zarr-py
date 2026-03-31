@@ -27,40 +27,40 @@ class TestPyramidLevel(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def test_no_nb_level(self):
-        nii2zarr(self.ni, self.output_zarr, nb_levels=1)
+        nii2zarr(self.ni, self.output_zarr, nb_levels=1, zarr_version=2, ome_version="0.4")
         self.assertEqual(1, count_levels(self.output_zarr))
 
     def test_constant_nb_level(self):
-        nii2zarr(self.ni, self.output_zarr, nb_levels=2)
+        nii2zarr(self.ni, self.output_zarr, nb_levels=2, zarr_version=2, ome_version="0.4")
         self.assertEqual(2, count_levels(self.output_zarr))
 
     def test_chunk_size_16(self):
-        nii2zarr(self.ni, self.output_zarr, nb_levels=-1, chunk=16)
+        nii2zarr(self.ni, self.output_zarr, nb_levels=-1, chunk=16, zarr_version=2, ome_version="0.4")
         self.assertEqual(3, count_levels(self.output_zarr))
 
     def test_chunk_size_24(self):
-        nii2zarr(self.ni, self.output_zarr, nb_levels=-1, chunk=24)
+        nii2zarr(self.ni, self.output_zarr, nb_levels=-1, chunk=24, zarr_version=2, ome_version="0.4")
         self.assertEqual(3, count_levels(self.output_zarr))
 
     def test_chunk_size_32(self):
-        nii2zarr(self.ni, self.output_zarr, nb_levels=-1, chunk=32)
+        nii2zarr(self.ni, self.output_zarr, nb_levels=-1, chunk=32, zarr_version=2, ome_version="0.4")
         self.assertEqual(2, count_levels(self.output_zarr))
 
     def test_chunk_size_48(self):
         # 64 -> 32 OK
-        nii2zarr(self.ni, self.output_zarr, nb_levels=-1, chunk=48)
+        nii2zarr(self.ni, self.output_zarr, nb_levels=-1, chunk=48, zarr_version=2, ome_version="0.4")
         self.assertEqual(2, count_levels(self.output_zarr))
 
     def test_chunk_size_64(self):
-        nii2zarr(self.ni, self.output_zarr, nb_levels=-1, chunk=64)
+        nii2zarr(self.ni, self.output_zarr, nb_levels=-1, chunk=64, zarr_version=2, ome_version="0.4")
         self.assertEqual(1, count_levels(self.output_zarr))
 
     def test_chunk_size_96(self):
-        nii2zarr(self.ni, self.output_zarr, nb_levels=-1, chunk=96)
+        nii2zarr(self.ni, self.output_zarr, nb_levels=-1, chunk=96, zarr_version=2, ome_version="0.4")
         self.assertEqual(1, count_levels(self.output_zarr))
 
     def test_chunk_size_512(self):
-        nii2zarr(self.ni, self.output_zarr, nb_levels=-1, chunk=512)
+        nii2zarr(self.ni, self.output_zarr, nb_levels=-1, chunk=512, zarr_version=2, ome_version="0.4")
         self.assertEqual(1, count_levels(self.output_zarr))
 
 
