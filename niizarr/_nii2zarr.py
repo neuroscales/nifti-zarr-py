@@ -363,7 +363,7 @@ def write_ome_metadata(
     # 9) Write into Zarr attributes
     omz.attrs["multiscales"] = [ms]
     if ome_version == "0.5":
-        omz.attrs["ome"] = {"multiscales": [ms]}
+        omz.attrs["ome"] = {"version": ome_version, "multiscales": [ms]}
     elif ome_version not in {"0.4","0.5"}:
         raise ValueError(f"Unsupported ome_version {ome_version}")
 
