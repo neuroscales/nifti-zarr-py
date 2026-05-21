@@ -623,7 +623,7 @@ def nii2zarr(
         'dtype': data_type,
         'fill_value': fill_value,
         'compressors': compressor,
-        'dimension_names': ARRAY_DIMENSIONS,
+        'dimension_names': axes,
     }
 
     if shard:
