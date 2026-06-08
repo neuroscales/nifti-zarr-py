@@ -62,11 +62,13 @@ def _open_zarr(
 ) -> Union[zarr.Group, zarr.Array]:
     store_opt = store_opt or {}
     if pyzarr_version == 3:
+        StoreLike = zarr.storage.StoreLike
         FsspecStore = zarr.storage.FsspecStore
         LocalStore = zarr.storage.LocalStore
         if "zarr_version" in kwargs:
             kwargs["zarr_format"] = kwargs.pop("zarr_version")
     else:
+        StoreLike = zarr.storage.Store
         FsspecStore = zarr.storage.FSStore
         LocalStore = zarr.storage.DirectoryStore
         if "zarr_version" in kwargs or "zarr_format" in kwargs:
@@ -76,10 +78,9 @@ def _open_zarr(
     if isinstance(out, (zarr.Group, zarr.Array)):
         return out
 
-    # Check if 'out' is already a store instance
-    if not isinstance(out, (FsspecStore, LocalStore)):
+    if not isinstance(out, StoreLike):
         if fsspec:
-            out = FsspecStore(out, mode=mode, **store_opt)
+            out = FsspecStore(out, **store_opt)
         else:
             out = LocalStore(out, **store_opt)
     if mode == "w":
