@@ -61,22 +61,35 @@ def _open_zarr(
         **kwargs: dict
 ) -> Union[zarr.Group, zarr.Array]:
     store_opt = store_opt or {}
-    if pyzarr_version == 3:
-        FsspecStore = zarr.storage.FsspecStore
-        LocalStore = zarr.storage.LocalStore
-        if "zarr_version" in kwargs:
-            kwargs["zarr_format"] = kwargs.pop("zarr_version")
-    else:
-        FsspecStore = zarr.storage.FSStore
-        LocalStore = zarr.storage.DirectoryStore
-        if "zarr_version" in kwargs or "zarr_format" in kwargs:
-            if kwargs.pop("zarr_version", 2) != 2 or kwargs.pop("zarr_format", 2) != 2:
-                raise ValueError("Only zarr 2 is supported with zarr-python < 3.0.0")
 
     if isinstance(out, (zarr.Group, zarr.Array)):
         return out
 
-    # Check if 'out' is already a store instance
+    if pyzarr_version == 3:
+        if "zarr_version" in kwargs:
+            kwargs["zarr_format"] = kwargs.pop("zarr_version")
+        # zarr-python >= 3 accepts a path/URL string (or a store instance)
+        # directly and builds the appropriate store itself: a LocalStore for
+        # filesystem paths or an FsspecStore for remote URIs (driven by
+        # storage_options). The v2-style store constructors no longer take a
+        # ``mode`` argument, so we must not build the store by hand here.
+        storage_options = store_opt or None
+        if mode == "w":
+            return zarr.group(
+                store=out, overwrite=True, storage_options=storage_options, **kwargs
+            )
+        return zarr.open(
+            store=out, mode=mode, storage_options=storage_options, **kwargs
+        )
+
+    # zarr-python < 3
+    FsspecStore = zarr.storage.FSStore
+    LocalStore = zarr.storage.DirectoryStore
+    if "zarr_version" in kwargs or "zarr_format" in kwargs:
+        if kwargs.pop("zarr_version", 2) != 2 or kwargs.pop("zarr_format", 2) != 2:
+            raise ValueError("Only zarr 2 is supported with zarr-python < 3.0.0")
+
+    # Build a store from the path/URL unless 'out' is already a store instance.
     if not isinstance(out, (FsspecStore, LocalStore)):
         if fsspec:
             out = FsspecStore(out, mode=mode, **store_opt)
@@ -132,6 +145,10 @@ def _create_array(
 
     if pyzarr_version == 3:
         data = kwargs.pop("data", None)
+        # zarr-python >= 3 can write zarr v2 arrays, but the v2 format has no
+        # place to store dimension names, so drop them to avoid a ValueError.
+        if out.metadata.zarr_format == 2:
+            kwargs.pop("dimension_names", None)
         out.create_array(name=name, **kwargs, compressors=compressor)
         if data:
             out[name][:] = data
