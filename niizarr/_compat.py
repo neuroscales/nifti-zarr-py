@@ -62,7 +62,7 @@ def _open_zarr(
 ) -> Union[zarr.Group, zarr.Array]:
     store_opt = store_opt or {}
     if pyzarr_version == 3:
-        StoreLike = zarr.storage.StoreLike
+        StoreLike = (zarr.abc.store.Store, zarr.storage.StorePath)
         FsspecStore = zarr.storage.FsspecStore
         LocalStore = zarr.storage.LocalStore
         if "zarr_version" in kwargs:
