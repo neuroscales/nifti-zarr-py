@@ -133,7 +133,7 @@ def _create_array(
         compressor = kwargs.pop("compressors", None)
 
     if pyzarr_version == 3 and out.metadata.zarr_format == 2:
-        # Zarr format 2 arrays do not support dimension names.
+        # Zarr v2 arrays do not support dimension_names
         kwargs.pop("dimension_names", None)
 
     if "dimension_separator" in kwargs and pyzarr_version == 3:
