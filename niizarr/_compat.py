@@ -82,10 +82,14 @@ def _open_zarr(
         if pyzarr_version == 3:
             read_only = mode == "r"
             if fsspec:
+                storage_options = dict(store_opt)
+                protocol = fsspec.core.split_protocol(str(out))[0]
+                if protocol in (None, "file", "local"):
+                    storage_options.setdefault("auto_mkdir", True)
                 out = FsspecStore.from_url(
                     out,
                     read_only=read_only,
-                    storage_options=store_opt or None,
+                    storage_options=storage_options or None,
                 )
             else:
                 out = LocalStore(out, read_only=read_only)
