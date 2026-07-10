@@ -79,10 +79,21 @@ def _open_zarr(
         return out
 
     if not isinstance(out, StoreLike):
-        if fsspec:
-            out = FsspecStore(out, mode=mode, **store_opt)
+        if pyzarr_version == 3:
+            read_only = mode == "r"
+            if fsspec:
+                out = FsspecStore.from_url(
+                    out,
+                    read_only=read_only,
+                    storage_options=store_opt or None,
+                )
+            else:
+                out = LocalStore(out, read_only=read_only)
         else:
-            out = LocalStore(out, **store_opt)
+            if fsspec:
+                out = FsspecStore(out, mode=mode, **store_opt)
+            else:
+                out = LocalStore(out, **store_opt)
     if mode == "w":
         out = zarr.group(store=out, overwrite=True, **kwargs)
     else:
