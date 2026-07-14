@@ -470,11 +470,10 @@ def nii2zarr(
     compressor_options : dict, optional
         Options for the compressor.
     zarr_version : {2, 3}, optional
-        Zarr format version. Default: 3. If zarr-python < v3 is installed, this 
-        falls back to zarr version 2 (and OME-Zarr 0.4) with a warning.
+        Zarr format version. Default: 3. Falls back to 2 if zarr-python < 3 is installed.
     ome_version : {"0.4", "0.5"}, optional
-        OME-Zarr version. Default: "0.5". Falls back to "0.4" when zarr
-        version 2 is used.
+        OME-Zarr version. Default: "0.5". Falls back to "0.4" if zarr-python < 3
+        is installed.
     validate : bool, optional
         Validate the Zarr with the `ome-zarr-models` package.
 
