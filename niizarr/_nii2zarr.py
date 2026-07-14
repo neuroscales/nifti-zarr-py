@@ -300,7 +300,6 @@ def write_ome_metadata(
     space_unit = space_unit or "millimeter"
     time_unit = time_unit or "second"
     ms: dict = {
-        "version": ome_version,
         "name": name,
         "type": multiscales_type or f"median window {'x'.join(['2']*sdim)}",
         "axes": [
@@ -361,10 +360,12 @@ def write_ome_metadata(
     ms["coordinateTransformations"] = [{"type":"scale", "scale": tscale}]
 
     # 9) Write into Zarr attributes
-    omz.attrs["multiscales"] = [ms]
-    if ome_version == "0.5":
+    if ome_version == "0.4":
+        ms["version"] = ome_version
+        omz.attrs["multiscales"] = [ms]
+    elif ome_version == "0.5":
         omz.attrs["ome"] = {"version": ome_version, "multiscales": [ms]}
-    elif ome_version not in {"0.4","0.5"}:
+    else:
         raise ValueError(f"Unsupported ome_version {ome_version}")
 
 
