@@ -89,7 +89,9 @@ optional arguments:
   --no-time                     No time dimension.
   --no-pyramid-axis {x,y,z}     Thick slice axis that should not be downsampled.
   --zarr-version {2,3}          Zarr format version.
+                                Falls back to 2 if zarr-python < 3 is installed.
   --ome-version {0.4,0.5}       OME-Zarr specification version.
+                                Falls back to 0.4 if zarr-python < 3 is installed.
   --validate                    Validate the Zarr with the `ome-zarr-models` package.
 ```
 
