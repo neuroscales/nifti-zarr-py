@@ -54,7 +54,7 @@ usage: nii2zarr [-h]
                 [--no-time]
                 [--no-pyramid-axis {x,y,z}]
                 [--zarr-version {2,3}]
-                [--ome-version {0.4,0.5}]
+                [--ome-version {auto,0.4,0.5}]
                 [--validate]
                 input [output]
 
@@ -90,8 +90,10 @@ optional arguments:
   --no-pyramid-axis {x,y,z}     Thick slice axis that should not be downsampled.
   --zarr-version {2,3}          Zarr format version.
                                 Falls back to 2 if zarr-python < 3 is installed.
-  --ome-version {0.4,0.5}       OME-Zarr specification version.
-                                Falls back to 0.4 if zarr-python < 3 is installed.
+  --ome-version {auto,0.4,0.5}  OME-Zarr specification version.
+                                Default "auto" selects the most recent version
+                                compatible with --zarr-version ("0.5" for v3,
+                                "0.4" for v2).
   --validate                    Validate the Zarr with the `ome-zarr-models` package.
 ```
 

@@ -418,7 +418,7 @@ def nii2zarr(
         compressor: Literal['blosc', 'zlib'] = 'blosc',
         compressor_options: dict = {},
         zarr_version: Literal[2, 3] = 3,
-        ome_version: Literal["0.4", "0.5"] = "0.5",
+        ome_version: Literal["auto", "0.4", "0.5"] = "auto",
         validate: bool = False,
 ) -> None:
     """
@@ -471,9 +471,10 @@ def nii2zarr(
         Options for the compressor.
     zarr_version : {2, 3}, optional
         Zarr format version. Default: 3. Falls back to 2 if zarr-python < 3 is installed.
-    ome_version : {"0.4", "0.5"}, optional
-        OME-Zarr version. Default: "0.5". Falls back to "0.4" if zarr-python < 3
-        is installed.
+    ome_version : {"auto", "0.4", "0.5"}, optional
+        OME-Zarr version. Default: "auto", which selects the most recent
+        version compatible with `zarr_version` ("0.5" for Zarr v3, "0.4" for
+        Zarr v2).
     validate : bool, optional
         Validate the Zarr with the `ome-zarr-models` package.
 
@@ -484,17 +485,26 @@ def nii2zarr(
     # check conflicts in parameters
     if pyzarr_version == 2 and zarr_version == 3:
         warnings.warn(
-            "zarr-python < 3 is installed and cannot write Zarr v3;"
-            "falling back to Zarr v2 and OME v0.4. "
+            "zarr-python < 3 is installed and cannot write Zarr v3; "
+            "falling back to Zarr v2. "
             "Install zarr-python >= 3.0.0 to write Zarr v3.",
             stacklevel=2,
         )
         zarr_version = 2
-        if ome_version == "0.5":
-            ome_version = "0.4"
 
-    if ome_version == "0.5" and zarr_version == 2:
-        raise ValueError("OME v0.5 requires zarr version 3")
+    if ome_version == "auto":
+        ome_version = "0.5" if zarr_version == 3 else "0.4"
+    elif ome_version == "0.5" and zarr_version == 2:
+        warnings.warn(
+            "OME v0.5 is designed for Zarr v3, but Zarr v2 was requested.",
+            stacklevel=2,
+        )
+    elif ome_version == "0.4" and zarr_version == 3:
+        warnings.warn(
+            "OME v0.4 is designed for Zarr v2, but Zarr v3 was requested.",
+            stacklevel=2,
+        )
+
     if shard and zarr_version == 2:
         raise ValueError("Sharding is only supported in zarr version 3")
 
@@ -743,9 +753,10 @@ def cli(args=None):
         help='Zarr format version. Falls back to 2 if zarr-python < 3 '
              'is installed.')
     parser.add_argument(
-        '--ome-version', type=str, default="0.5", choices=("0.4", "0.5"),
-        help='OME-Zarr specification version. Falls back to 0.4 if zarr-python '
-             '< 3 is installed.')
+        '--ome-version', type=str, default="auto", choices=("auto", "0.4", "0.5"),
+        help='OME-Zarr specification version. Default "auto" selects the most '
+             'recent version compatible with --zarr-version ("0.5" for v3, '
+             '"0.4" for v2).')
     parser.add_argument(
         '--validate', action='store_true',
         help='Validate the Zarr with the `ome-zarr-models` package.')
