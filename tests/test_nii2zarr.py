@@ -9,6 +9,7 @@ import zarr
 from packaging.version import parse as V
 
 from niizarr import nii2zarr
+from niizarr._compat import pyzarr_version
 from ._data import compare_zarr_archives
 
 try:
@@ -19,6 +20,9 @@ except ImportError:
 
 HERE = op.dirname(op.abspath(__file__))
 DATA = op.join(HERE, "data")
+OME_VERSIONS = [("0.4", 2)]
+if pyzarr_version >= 3:
+    OME_VERSIONS.append(("0.5", 3))
 
 
 class Testnii2zarr(unittest.TestCase):
@@ -32,46 +36,54 @@ class Testnii2zarr(unittest.TestCase):
         self.assertRaises(Exception, nii2zarr, 'non_exist_file.nii', self.temp_dir.name)
 
     def test_input_path(self):
-        nii2zarr(
-            op.join(DATA, "example4d.nii.gz"),
-            self.temp_dir.name,
-            validate=VALIDATE,
-            zarr_version=2,
-            ome_version="0.4",
-        )
+        for ome_version, zarr_version in OME_VERSIONS:
+            with self.subTest(ome_version=ome_version):
+                nii2zarr(
+                    op.join(DATA, "example4d.nii.gz"),
+                    self.temp_dir.name,
+                    validate=VALIDATE,
+                    zarr_version=zarr_version,
+                    ome_version=ome_version,
+                )
 
     def test_input_fd(self):
         if V(nib.__version__) < V("5"):
             # nibabel needs to be >= 5 to support from_stream
             return
-        with gzip.open(op.join(DATA, "example4d.nii.gz"), "rb") as f:
-            nii2zarr(
-                f,
-                self.temp_dir.name,
-                validate=VALIDATE,
-                zarr_version=2,
-                ome_version="0.4",
-            )
+        for ome_version, zarr_version in OME_VERSIONS:
+            with self.subTest(ome_version=ome_version):
+                with gzip.open(op.join(DATA, "example4d.nii.gz"), "rb") as f:
+                    nii2zarr(
+                        f,
+                        self.temp_dir.name,
+                        validate=VALIDATE,
+                        zarr_version=zarr_version,
+                        ome_version=ome_version,
+                    )
 
     def test_input_Nifti1Image(self):
         ni = nib.load(op.join(DATA, "example4d.nii.gz"))
-        nii2zarr(
-            ni,
-            self.temp_dir.name,
-            validate=VALIDATE,
-            zarr_version=2,
-            ome_version="0.4",
-        )
+        for ome_version, zarr_version in OME_VERSIONS:
+            with self.subTest(ome_version=ome_version):
+                nii2zarr(
+                    ni,
+                    self.temp_dir.name,
+                    validate=VALIDATE,
+                    zarr_version=zarr_version,
+                    ome_version=ome_version,
+                )
 
     def test_input_Nifti2Image(self):
         ni = nib.load(op.join(DATA, "example_nifti2.nii.gz"))
-        nii2zarr(
-            ni,
-            self.temp_dir.name,
-            validate=VALIDATE,
-            zarr_version=2,
-            ome_version="0.4",
-        )
+        for ome_version, zarr_version in OME_VERSIONS:
+            with self.subTest(ome_version=ome_version):
+                nii2zarr(
+                    ni,
+                    self.temp_dir.name,
+                    validate=VALIDATE,
+                    zarr_version=zarr_version,
+                    ome_version=ome_version,
+                )
 
     def test_same_result_nifti1(self):
         written_zarr = op.join(self.temp_dir.name, "example4d.nii.zarr")
