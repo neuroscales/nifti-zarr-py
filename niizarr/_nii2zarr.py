@@ -4,6 +4,7 @@ import json
 import math
 import re
 import sys
+import warnings
 from argparse import ArgumentDefaultsHelpFormatter
 from typing import (
     Literal, Union, List, Optional, Callable, Generator, Any, Tuple
@@ -300,7 +301,6 @@ def write_ome_metadata(
     space_unit = space_unit or "millimeter"
     time_unit = time_unit or "second"
     ms: dict = {
-        "version": ome_version,
         "name": name,
         "type": multiscales_type or f"median window {'x'.join(['2']*sdim)}",
         "axes": [
@@ -361,10 +361,12 @@ def write_ome_metadata(
     ms["coordinateTransformations"] = [{"type":"scale", "scale": tscale}]
 
     # 9) Write into Zarr attributes
-    omz.attrs["multiscales"] = [ms]
-    if ome_version == "0.5":
+    if ome_version == "0.4":
+        ms["version"] = ome_version
+        omz.attrs["multiscales"] = [ms]
+    elif ome_version == "0.5":
         omz.attrs["ome"] = {"version": ome_version, "multiscales": [ms]}
-    elif ome_version not in {"0.4","0.5"}:
+    else:
         raise ValueError(f"Unsupported ome_version {ome_version}")
 
 
@@ -417,7 +419,7 @@ def nii2zarr(
         compressor: Literal['blosc', 'zlib'] = 'blosc',
         compressor_options: dict = {},
         zarr_version: Literal[2, 3] = 3,
-        ome_version: Literal["0.4", "0.5"] = "0.5",
+        ome_version: Literal["auto", "0.4", "0.5"] = "auto",
         validate: bool = False,
 ) -> None:
     """
@@ -469,9 +471,11 @@ def nii2zarr(
     compressor_options : dict, optional
         Options for the compressor.
     zarr_version : {2, 3}, optional
-        Zarr format version.
-    ome_version : {"0.4", "0.5"}, optional
-        OME-Zarr version.
+        Zarr format version. Default: 3. Falls back to 2 if zarr-python < 3 is installed.
+    ome_version : {"auto", "0.4", "0.5"}, optional
+        OME-Zarr version. Default: "auto", which selects the most recent
+        version compatible with `zarr_version` ("0.5" for Zarr v3, "0.4" for
+        Zarr v2).
     validate : bool, optional
         Validate the Zarr with the `ome-zarr-models` package.
 
@@ -481,7 +485,27 @@ def nii2zarr(
     """
     # check conflicts in parameters
     if pyzarr_version == 2 and zarr_version == 3:
-        raise ValueError("zarr-python >=3.0.0 is required for zarr version 3")
+        warnings.warn(
+            "zarr-python < 3 is installed and cannot write Zarr v3; "
+            "falling back to Zarr v2. "
+            "Install zarr-python >= 3.0.0 to write Zarr v3.",
+            stacklevel=2,
+        )
+        zarr_version = 2
+
+    if ome_version == "auto":
+        ome_version = "0.5" if zarr_version == 3 else "0.4"
+    elif ome_version == "0.5" and zarr_version == 2:
+        warnings.warn(
+            "OME v0.5 is designed for Zarr v3, but Zarr v2 was requested.",
+            stacklevel=2,
+        )
+    elif ome_version == "0.4" and zarr_version == 3:
+        warnings.warn(
+            "OME v0.4 is designed for Zarr v2, but Zarr v3 was requested.",
+            stacklevel=2,
+        )
+
     if shard and zarr_version == 2:
         raise ValueError("Sharding is only supported in zarr version 3")
 
@@ -726,11 +750,14 @@ def cli(args=None):
         '--no-pyramid-axis', choices=('x', 'y', 'z'),
         help='Thick slice axis that should not be downsampled.')
     parser.add_argument(
-        '--zarr-version', type=int, default=2, choices=(2, 3),
-        help='Zarr format version.')
+        '--zarr-version', type=int, default=3, choices=(2, 3),
+        help='Zarr format version. Falls back to 2 if zarr-python < 3 '
+             'is installed.')
     parser.add_argument(
-        '--ome-version', type=str, default="0.4", choices=("0.4", "0.5"),
-        help='OME-Zarr specification version.')
+        '--ome-version', type=str, default="auto", choices=("auto", "0.4", "0.5"),
+        help='OME-Zarr specification version. Default "auto" selects the most '
+             'recent version compatible with --zarr-version ("0.5" for v3, '
+             '"0.4" for v2).')
     parser.add_argument(
         '--validate', action='store_true',
         help='Validate the Zarr with the `ome-zarr-models` package.')
