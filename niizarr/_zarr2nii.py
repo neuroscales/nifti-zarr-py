@@ -294,7 +294,7 @@ def zarr2nii(
         niiheader.set_data_dtype(dtype)
 
     # create nibabel image
-    img = NiftiImage(array, niiheader.get_best_affine(), niiheader)
+    img = NiftiImage(array, None, niiheader)
 
     if out is not None:
         if hasattr(out, 'read') and hasattr(img, "to_stream"):

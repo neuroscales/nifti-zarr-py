@@ -28,7 +28,12 @@ class TestJSONValidation(unittest.TestCase):
                 data = nib.load(op.join(DATA, nifti_file))
                 with tempfile.TemporaryDirectory() as tmpdir:
                     zarr_file = op.join(tmpdir, "test.nii.zarr")
-                    niizarr.nii2zarr(data, zarr_file)
+                    niizarr.nii2zarr(
+                        data,
+                        zarr_file,
+                        zarr_version=2,
+                        ome_version="0.4",
+                    )
 
                     json_file = op.join(zarr_file, "nifti/.zattrs")
                     with open(json_file) as f:

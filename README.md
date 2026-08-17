@@ -1,3 +1,6 @@
+[![PyPI](https://badge.fury.io/py/nifti-zarr.svg)](https://pypi.python.org/pypi/nifti-zarr/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16575942.svg)](https://doi.org/10.5281/zenodo.16575942)
+
 # nifti-zarr-py: Implementation of the NIfTI-Zarr specification in Python
 
 ## Installation
@@ -39,6 +42,9 @@ usage: nii2zarr [-h]
                 [--chunk CHUNK]
                 [--unchunk-channels]
                 [--unchunk-time]
+                [--shard SHARD]
+                [--unshard-channels]
+                [--unshard-time]
                 [--levels LEVELS]
                 [--method {gaussian,laplacian}]
                 [--fill FILL]
@@ -48,7 +54,7 @@ usage: nii2zarr [-h]
                 [--no-time]
                 [--no-pyramid-axis {x,y,z}]
                 [--zarr-version {2,3}]
-                [--ome-version {0.4,0.5}]
+                [--ome-version {auto,0.4,0.5}]
                 [--validate]
                 input [output]
 
@@ -70,6 +76,9 @@ optional arguments:
                                 Unchunk if you want to display all timepoints
                                 as a single RGB layer in neuroglancer.
                                 Chunked by default.
+  --shard SHARD                 Spatial shard size.
+  --unshard-channels            Save all channels in a single shard.
+  --unshard-time                Save all timepoints in a single shard.
   --levels LEVELS               Number of levels in the pyramid.
                                 If -1 (default), use as many levels as possible.
   --method {gaussian,laplacian} Pyramid method.
@@ -80,7 +89,11 @@ optional arguments:
   --no-time                     No time dimension.
   --no-pyramid-axis {x,y,z}     Thick slice axis that should not be downsampled.
   --zarr-version {2,3}          Zarr format version.
-  --ome-version {0.4,0.5}       OME-Zarr specification version.
+                                Falls back to 2 if zarr-python < 3 is installed.
+  --ome-version {auto,0.4,0.5}  OME-Zarr specification version.
+                                Default "auto" selects the most recent version
+                                compatible with --zarr-version ("0.5" for v3,
+                                "0.4" for v2).
   --validate                    Validate the Zarr with the `ome-zarr-models` package.
 ```
 

@@ -38,8 +38,18 @@ class TestEndian(unittest.TestCase):
         nib.save(ni, self.sys_endian_nifti)
         nib.save(inv_ni, self.inv_endian_nifti)
 
-        nii2zarr(self.sys_endian_nifti, self.sys_endian_zarr)
-        nii2zarr(self.inv_endian_nifti, self.inv_endian_zarr)
+        nii2zarr(
+            self.sys_endian_nifti,
+            self.sys_endian_zarr,
+            zarr_version=2,
+            ome_version="0.4",
+        )
+        nii2zarr(
+            self.inv_endian_nifti,
+            self.inv_endian_zarr,
+            zarr_version=2,
+            ome_version="0.4",
+        )
 
     def tearDown(self):
         self.tempdir.cleanup()

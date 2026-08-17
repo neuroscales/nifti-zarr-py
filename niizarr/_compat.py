@@ -62,7 +62,7 @@ def _open_zarr(
 ) -> Union[zarr.Group, zarr.Array]:
     store_opt = store_opt or {}
     if pyzarr_version == 3:
-        StoreLike = zarr.storage.StoreLike
+        StoreLike = (zarr.abc.store.Store, zarr.storage.StorePath)
         FsspecStore = zarr.storage.FsspecStore
         LocalStore = zarr.storage.LocalStore
         if "zarr_version" in kwargs:
@@ -79,10 +79,25 @@ def _open_zarr(
         return out
 
     if not isinstance(out, StoreLike):
-        if fsspec:
-            out = FsspecStore(out, mode=mode, **store_opt)
+        if pyzarr_version == 3:
+            read_only = mode == "r"
+            if fsspec:
+                storage_options = dict(store_opt)
+                protocol = fsspec.core.split_protocol(str(out))[0]
+                if protocol in (None, "file", "local"):
+                    storage_options.setdefault("auto_mkdir", True)
+                out = FsspecStore.from_url(
+                    out,
+                    read_only=read_only,
+                    storage_options=storage_options or None,
+                )
+            else:
+                out = LocalStore(out, read_only=read_only)
         else:
-            out = LocalStore(out, **store_opt)
+            if fsspec:
+                out = FsspecStore(out, mode=mode, **store_opt)
+            else:
+                out = LocalStore(out, **store_opt)
     if mode == "w":
         out = zarr.group(store=out, overwrite=True, **kwargs)
     else:
@@ -116,6 +131,10 @@ def _create_array(
         compressor = kwargs.pop("compressor")
     else:
         compressor = kwargs.pop("compressors", None)
+
+    if pyzarr_version == 3 and out.metadata.zarr_format == 2:
+        # Zarr v2 arrays do not support dimension_names
+        kwargs.pop("dimension_names", None)
 
     if "dimension_separator" in kwargs and pyzarr_version == 3:
         dimension_separator = kwargs.pop("dimension_separator")
