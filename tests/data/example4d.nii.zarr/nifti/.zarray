@@ -1,15 +1,15 @@
 {
-    "chunks": [
-        416
-    ],
-    "compressor": null,
-    "dimension_separator": "/",
-    "dtype": "|u1",
-    "fill_value": null,
-    "filters": null,
-    "order": "C",
-    "shape": [
-        416
-    ],
-    "zarr_format": 2
+  "shape": [
+    416
+  ],
+  "chunks": [
+    416
+  ],
+  "dtype": "|u1",
+  "fill_value": null,
+  "order": "C",
+  "filters": null,
+  "dimension_separator": "/",
+  "compressor": null,
+  "zarr_format": 2
 }
