@@ -679,7 +679,7 @@ def nii2zarr(
         #   scipy.ndimage.zoom(..., grid_mode=True), which corresponds
         #   to our mode `"edge"` (scale = shape ratio, half voxel shift)
         pyramid_aligns="edge",
-        multiscale_type=f"{method} pyramid",
+        multiscales_type=f"{method} pyramid",
     )
 
     write_nifti_header(out, nbheader)
