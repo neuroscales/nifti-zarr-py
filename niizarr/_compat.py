@@ -151,10 +151,16 @@ def _create_array(
             kwargs["chunk_key_encoding"] = dimension_separator
 
     if pyzarr_version == 3:
+
+        if "order" in kwargs:
+            order = kwargs.pop("order")
+            kwargs["config"] = {"order": order}
+
         data = kwargs.pop("data", None)
         out.create_array(name=name, **kwargs, compressors=compressor)
         if data:
             out[name][:] = data
         return
+
     if pyzarr_version == 2:
         out.create_dataset(name=name, **kwargs, compressor=compressor)
