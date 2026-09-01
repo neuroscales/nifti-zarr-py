@@ -60,7 +60,9 @@ def _ome2affine(ome, level=0):
     return affine
 
 
-def default_nifti_header(inp0: zarr.Array, ome: dict) -> Union[Nifti1Header, Nifti2Header]:
+def default_nifti_header(
+    inp0: zarr.Array, ome: dict
+) -> Union[Nifti1Header, Nifti2Header]:
     """
     Generate a default nifti header.
 
@@ -114,11 +116,13 @@ def default_nifti_header(inp0: zarr.Array, ome: dict) -> Union[Nifti1Header, Nif
 
 
 def zarr2nii(
-        inp: Union[str, PathLike, Any],
-        out: Optional[Union[str, PathLike]] = None,
-        level: Union[int, str] = 0,
-        mode: Literal["r", "w", "a"] = "r",
-        **store_opt
+    inp: Union[str, PathLike, Any],
+    out: Optional[Union[str, PathLike]] = None,
+    level: Union[int, str] = 0,
+    mode: Literal["r", "w", "a"] = "r",
+    dtype: Union[str, np.dtype, None] = None,
+    casting: str = "unsafe",
+    **store_opt
 ) -> Union[Nifti1Image, Nifti2Image]:
     """
     Convert a nifti-zarr to nifti
@@ -133,6 +137,10 @@ def zarr2nii(
         Pyramid level to extract
     mode : {"r", "w", "a"}
         Opening mode.
+    dtype : str | np.dtype, optional
+        If provided, cast data to this dtype.
+    casting : {'no', 'equiv', 'safe', 'same_kind', 'unsafe'}, optional
+        Controls what kind of data casting may occur.
 
     Returns
     -------
@@ -278,6 +286,12 @@ def zarr2nii(
     # drop axes
     slicer = (slice(None),) * nifti_ndim + (0,) * (array.ndim - nifti_ndim)
     array = array[slicer]
+
+    # if dtype is provided, cast
+    if dtype is not None and np.dtype(dtype) != np.dtype(array.dtype):
+        dtype = np.dtype(dtype)
+        array = array.astype(dtype, casting=casting)
+        niiheader.set_data_dtype(dtype)
 
     # create nibabel image
     img = NiftiImage(array, None, niiheader)
