@@ -673,7 +673,13 @@ def nii2zarr(
         time_scale=jsonheader["VoxelSize"][3] if nbatch >= 1 else 1.0,
         space_unit=JNIFTI_ZARR[jsonheader["Unit"]["L"]],
         time_unit=JNIFTI_ZARR[jsonheader["Unit"]["T"]],
-        ome_version=ome_version
+        ome_version=ome_version,
+        # NOTE
+        #   skimage pyramid_gaussian/pyramid_laplace use
+        #   scipy.ndimage.zoom(..., grid_mode=True), which corresponds
+        #   to our mode `"edge"` (scale = shape ratio, half voxel shift)
+        pyramid_aligns="edge",
+        multiscales_type=f"{method} pyramid",
     )
 
     write_nifti_header(out, nbheader)

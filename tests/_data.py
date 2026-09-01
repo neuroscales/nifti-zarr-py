@@ -113,7 +113,13 @@ if __name__ == '__main__':
     input_files = ["data/example4d.nii.gz", "data/example_nifti2.nii.gz"]
     for input_file in input_files:
         output_file = input_file.replace(".gz", ".zarr")
-        nii2zarr(input_file, output_file, chunk=64)
+        nii2zarr(
+            input_file,
+            output_file,
+            chunk=64,
+            zarr_version=2,
+            ome_version="0.4",
+        )
         from niizarr._compat import _open_zarr
         inp = _open_zarr(output_file, "r")
 

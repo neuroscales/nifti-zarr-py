@@ -1,8 +1,8 @@
 {
-    "_ARRAY_DIMENSIONS": [
-        "time",
-        "z",
-        "y",
-        "x"
-    ]
+  "_ARRAY_DIMENSIONS": [
+    "time",
+    "z",
+    "y",
+    "x"
+  ]
 }
