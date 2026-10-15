@@ -5,7 +5,7 @@ import unittest
 import nibabel as nib
 import numpy as np
 
-import zarr
+import warnings
 
 from niizarr import nii2zarr, zarr2nii
 
@@ -45,30 +45,18 @@ class Testzarr2nii(unittest.TestCase):
         np.testing.assert_array_almost_equal(loaded.get_fdata(), converted.get_fdata())
 
     def test_ome_v06(self):
-        """OME-Zarr 0.6 metadata reads like the equivalent 0.5 metadata."""
+        """OME-Zarr 0.6 output reads back like 0.5 output and the source."""
         nifti_file = op.join(DATA, "example4d.nii.gz")
-        zarr_file = op.join(self.temp_dir.name, "example4d.nii.zarr")
-        nii2zarr(nifti_file, zarr_file, zarr_version=3, ome_version="0.5")
-        expected = zarr2nii(zarr_file)
-
-        group = zarr.open_group(zarr_file, mode="r+")
-        ome = group.attrs["ome"]
-        ms = ome["multiscales"][0]
-        datasets = []
-        for ds in ms["datasets"]:
-            scale, translation = ds["coordinateTransformations"]
-            datasets.append({"path": ds["path"], "coordinateTransformations": [{
-                "type": "sequence",
-                "input": {"path": ds["path"]},
-                "output": {"name": "intrinsic"},
-                "transformations": [scale, translation],
-            }]})
-        ms = {k: v for k, v in ms.items() if k != "axes"}
-        ms["coordinateSystems"] = [{"name": "intrinsic", "axes": ome["multiscales"][0]["axes"]}]
-        ms["datasets"] = datasets
-        group.attrs["ome"] = {"version": "0.6", "multiscales": [ms]}
-
-        converted = zarr2nii(zarr_file)
-        self.assertEqual(str(expected.header), str(converted.header))
-        np.testing.assert_array_equal(expected.get_fdata(), converted.get_fdata())
-
+        loaded = nib.load(nifti_file)
+        out = {}
+        for version in ("0.5", "0.6"):
+            out[version] = op.join(self.temp_dir.name, f"v{version}.nii.zarr")
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", FutureWarning)
+                nii2zarr(nifti_file, out[version], ome_version=version)
+        v05, v06 = zarr2nii(out["0.5"]), zarr2nii(out["0.6"])
+        self.assertEqual(str(v05.header), str(v06.header))
+        np.testing.assert_array_equal(np.asarray(v06.dataobj),
+                                      np.asarray(loaded.dataobj))
+        self.assertEqual(str(zarr2nii(out["0.5"], level=1).header),
+                         str(zarr2nii(out["0.6"], level=1).header))

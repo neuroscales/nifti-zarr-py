@@ -24,8 +24,6 @@ class TestNiizarrConversion(unittest.TestCase):
                     niizarr.nii2zarr(
                         data,
                         zarr_file,
-                        zarr_version=2,
-                        ome_version="0.4",
                     )
 
                     loaded = niizarr.zarr2nii(zarr_file)
@@ -33,8 +31,6 @@ class TestNiizarrConversion(unittest.TestCase):
                     niizarr.nii2zarr(
                         loaded,
                         op.join(tmpdir, "foo.nii.zarr"),
-                        zarr_version=2,
-                        ome_version="0.4",
                     )
                     original_header = data.header
                     loaded_header = loaded.header
@@ -52,8 +48,6 @@ class TestNiizarrConversion(unittest.TestCase):
             niizarr.nii2zarr(
                 data,
                 zarr_file,
-                zarr_version=2,
-                ome_version="0.4",
             )
 
             loaded = niizarr.zarr2nii(zarr_file)
@@ -74,8 +68,6 @@ class TestNiizarrConversion(unittest.TestCase):
                     niizarr.nii2zarr(
                         data,
                         zarr_file,
-                        zarr_version=2,
-                        ome_version="0.4",
                     )
                     loaded = niizarr.zarr2nii(zarr_file)
                     np.testing.assert_array_almost_equal(data.get_fdata(),

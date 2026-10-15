@@ -1,8 +1,8 @@
 from typing import Literal, Optional, Union, Any
 
 import zarr
+import zarr.codecs
 from nibabel import Nifti1Image
-from packaging.version import parse as V
 
 # If fsspec available, use fsspec
 open = open
@@ -13,34 +13,14 @@ try:
 except (ImportError, ModuleNotFoundError):
     fsspec = None
 
-if V(zarr.__version__) < V("3"):
-    pyzarr_version = 2
-else:
-    pyzarr_version = 3
-
-
-def _make_compressor(
-        name: Union[str, int],
-        zarr_version: Literal[2, 3],
-        **kwargs: dict
-) -> Any:
+def _make_compressor(name: Union[str, Any], **kwargs: dict) -> Any:
     if not isinstance(name, str):
         return name
     name = name.lower()
-    if zarr_version == 2:
-        import numcodecs
-        compressor_map = {
-            "blosc": numcodecs.Blosc,
-            "zlib": numcodecs.Zstd,
-        }
-    elif zarr_version == 3:
-        import zarr.codecs
-        compressor_map = {
-            "blosc": zarr.codecs.BloscCodec,
-            "zlib": zarr.codecs.ZstdCodec,
-        }
-    else:
-        raise ValueError(f"zarr version {zarr_version} is not supported")
+    compressor_map = {
+        "blosc": zarr.codecs.BloscCodec,
+        "zlib": zarr.codecs.ZstdCodec,
+    }
     if name not in compressor_map:
         raise ValueError('Unknown compressor', name)
     Compressor = compressor_map[name]
@@ -61,43 +41,23 @@ def _open_zarr(
         **kwargs: dict
 ) -> Union[zarr.Group, zarr.Array]:
     store_opt = store_opt or {}
-    if pyzarr_version == 3:
-        StoreLike = (zarr.abc.store.Store, zarr.storage.StorePath)
-        FsspecStore = zarr.storage.FsspecStore
-        LocalStore = zarr.storage.LocalStore
-        if "zarr_version" in kwargs:
-            kwargs["zarr_format"] = kwargs.pop("zarr_version")
-    else:
-        StoreLike = zarr.storage.Store
-        FsspecStore = zarr.storage.FSStore
-        LocalStore = zarr.storage.DirectoryStore
-        if "zarr_version" in kwargs or "zarr_format" in kwargs:
-            if kwargs.pop("zarr_version", 2) != 2 or kwargs.pop("zarr_format", 2) != 2:
-                raise ValueError("Only zarr 2 is supported with zarr-python < 3.0.0")
-
     if isinstance(out, (zarr.Group, zarr.Array)):
         return out
 
-    if not isinstance(out, StoreLike):
-        if pyzarr_version == 3:
-            read_only = mode == "r"
-            if fsspec:
-                storage_options = dict(store_opt)
-                protocol = fsspec.core.split_protocol(str(out))[0]
-                if protocol in (None, "file", "local"):
-                    storage_options.setdefault("auto_mkdir", True)
-                out = FsspecStore.from_url(
-                    out,
-                    read_only=read_only,
-                    storage_options=storage_options or None,
-                )
-            else:
-                out = LocalStore(out, read_only=read_only)
+    if not isinstance(out, (zarr.abc.store.Store, zarr.storage.StorePath)):
+        read_only = mode == "r"
+        if fsspec:
+            storage_options = dict(store_opt)
+            protocol = fsspec.core.split_protocol(str(out))[0]
+            if protocol in (None, "file", "local"):
+                storage_options.setdefault("auto_mkdir", True)
+            out = zarr.storage.FsspecStore.from_url(
+                out,
+                read_only=read_only,
+                storage_options=storage_options or None,
+            )
         else:
-            if fsspec:
-                out = FsspecStore(out, mode=mode, **store_opt)
-            else:
-                out = LocalStore(out, **store_opt)
+            out = zarr.storage.LocalStore(out, read_only=read_only)
     if mode == "w":
         out = zarr.group(store=out, overwrite=True, **kwargs)
     else:
@@ -132,35 +92,15 @@ def _create_array(
     else:
         compressor = kwargs.pop("compressors", None)
 
-    if pyzarr_version == 3 and out.metadata.zarr_format == 2:
-        # Zarr v2 arrays do not support dimension_names
-        kwargs.pop("dimension_names", None)
+    if kwargs.pop("dimension_separator", "/") != "/":
+        from zarr.core.chunk_key_encodings import ChunkKeyEncodingParams
+        kwargs["chunk_key_encoding"] = ChunkKeyEncodingParams(
+            name="default", separator=".")
 
-    if "dimension_separator" in kwargs and pyzarr_version == 3:
-        dimension_separator = kwargs.pop("dimension_separator")
-        if dimension_separator == '.' and out.metadata.zarr_format == 2:
-            pass
-        elif dimension_separator == '/' and out.metadata.zarr_format == 3:
-            pass
-        else:
-            from zarr.core.chunk_key_encodings import ChunkKeyEncodingParams
-            dimension_separator = ChunkKeyEncodingParams(
-                name="default" if out.metadata.zarr_format == 3 else "v2",
-                separator=dimension_separator)
+    if "order" in kwargs:
+        kwargs["config"] = {"order": kwargs.pop("order")}
 
-            kwargs["chunk_key_encoding"] = dimension_separator
-
-    if pyzarr_version == 3:
-
-        if "order" in kwargs:
-            order = kwargs.pop("order")
-            kwargs["config"] = {"order": order}
-
-        data = kwargs.pop("data", None)
-        out.create_array(name=name, **kwargs, compressors=compressor)
-        if data:
-            out[name][:] = data
-        return
-
-    if pyzarr_version == 2:
-        out.create_dataset(name=name, **kwargs, compressor=compressor)
+    data = kwargs.pop("data", None)
+    out.create_array(name=name, **kwargs, compressors=compressor)
+    if data:
+        out[name][:] = data

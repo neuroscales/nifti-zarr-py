@@ -53,8 +53,7 @@ usage: nii2zarr [-h]
                 [--no-label]
                 [--no-time]
                 [--no-pyramid-axis {x,y,z}]
-                [--zarr-version {2,3}]
-                [--ome-version {auto,0.4,0.5}]
+                [--ome-version {auto,0.5,0.6}]
                 [--validate]
                 input [output]
 
@@ -88,21 +87,22 @@ optional arguments:
   --no-label                    Not a segmentation volume.
   --no-time                     No time dimension.
   --no-pyramid-axis {x,y,z}     Thick slice axis that should not be downsampled.
-  --zarr-version {2,3}          Zarr format version.
-                                Falls back to 2 if zarr-python < 3 is installed.
-  --ome-version {auto,0.4,0.5}  OME-Zarr specification version.
-                                Default "auto" selects the most recent version
-                                compatible with --zarr-version ("0.5" for v3,
-                                "0.4" for v2).
+  --ome-version {auto,0.5,0.6}  OME-Zarr specification version.
+                                Default "auto" (currently "0.6"). Writing 0.5
+                                will be deprecated in a future release.
   --validate                    Validate the Zarr with the `ome-zarr-models` package.
 ```
+
+Output is always Zarr v3. With OME-Zarr 0.6, the NIfTI qform/sform spaces
+are also described as the coordinate systems `nifti:qform` / `nifti:sform`,
+each with an affine transform from the `intrinsic` (scaled voxel) system.
 
 ### NIfTI-Zarr to NIfTI
 
 ```text
 usage: zarr2nii [-h] [--level LEVEL] input [output]
 
-Convert nifti-zarr to nifti.
+Convert nifti-zarr to nifti. Reads Zarr v2 and v3, and OME-Zarr 0.4-0.6.
 
 positional arguments:
   input          Input zarr directory
