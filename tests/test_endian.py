@@ -41,14 +41,10 @@ class TestEndian(unittest.TestCase):
         nii2zarr(
             self.sys_endian_nifti,
             self.sys_endian_zarr,
-            zarr_version=2,
-            ome_version="0.4",
         )
         nii2zarr(
             self.inv_endian_nifti,
             self.inv_endian_zarr,
-            zarr_version=2,
-            ome_version="0.4",
         )
 
     def tearDown(self):
@@ -63,30 +59,33 @@ class TestEndian(unittest.TestCase):
     def test_system_endian_header(self):
         with open(self.sys_endian_nifti, "rb") as f:
             sys_nifti_content = f.read(4)
-        with open(os.path.join(self.sys_endian_zarr, "nifti/0"), "rb") as f:
+        with open(os.path.join(self.sys_endian_zarr, "nifti/c/0"), "rb") as f:
             sys_zarr_content = f.read(4)
         self.assertEqual(sys_nifti_content, sys_nifti_content)
 
     def test_inv_endian_header(self):
         with open(self.inv_endian_nifti, "rb") as f:
             inv_nifti_content = f.read(4)
-        with open(os.path.join(self.inv_endian_zarr, "nifti/0"), "rb") as f:
+        with open(os.path.join(self.inv_endian_zarr, "nifti/c/0"), "rb") as f:
             inv_zarr_content = f.read(4)
         self.assertEqual(inv_nifti_content, inv_zarr_content)
 
+    @staticmethod
+    def _byteorder(path):
+        with open(os.path.join(path, "0/zarr.json"), "r") as f:
+            codecs = json.load(f)["codecs"]
+        endian = next(c for c in codecs if c["name"] == "bytes")["configuration"]["endian"]
+        return "<" if endian == "little" else ">"
+
     def test_system_endian_zarr_content(self):
-        with open(os.path.join(self.sys_endian_zarr, "0/.zarray"), "r") as f:
-            zarray = json.load(f)
-        self.assertEqual(zarray["dtype"][0], SYS_BYTEORDER)
+        self.assertEqual(self._byteorder(self.sys_endian_zarr), SYS_BYTEORDER)
 
     def test_inv_endian_zarr_content(self):
-        with open(os.path.join(self.inv_endian_zarr, "0/.zarray"), "r") as f:
-            zarray = json.load(f)
-        self.assertNotEqual(zarray["dtype"][0], SYS_BYTEORDER)
+        self.assertNotEqual(self._byteorder(self.inv_endian_zarr), SYS_BYTEORDER)
 
     def test_system_endian_extension(self):
 
-        with open(os.path.join(self.sys_endian_zarr, "nifti/0"), "rb") as f:
+        with open(os.path.join(self.sys_endian_zarr, "nifti/c/0"), "rb") as f:
             f.seek(348 + 4)
             zarr_extension_content = f.read(4)
         with open(self.sys_endian_nifti, "rb") as f:
@@ -100,7 +99,7 @@ class TestEndian(unittest.TestCase):
 
     def test_inv_endian_extension(self):
 
-        with open(os.path.join(self.inv_endian_zarr, "nifti/0"), "rb") as f:
+        with open(os.path.join(self.inv_endian_zarr, "nifti/c/0"), "rb") as f:
             f.seek(348 + 4)
             zarr_extension_content = f.read(4)
         with open(self.inv_endian_nifti, "rb") as f:

@@ -13,6 +13,7 @@ from typing import (
 import nibabel as nib
 import numpy as np
 import zarr
+import zarr.codecs
 from nibabel.nifti1 import Nifti1Header, Nifti1Image
 from nibabel.nifti2 import Nifti2Header, Nifti2Image
 from numpy import ndarray
@@ -20,7 +21,6 @@ from skimage.transform import pyramid_gaussian, pyramid_laplacian
 
 from ._compat import (
     _make_compressor, _open_zarr, _create_array, _load_nifti_from_stream,
-    pyzarr_version
 )
 from ._header import (
     UNITS, DTYPES, INTENTS, INTENTS_P, SLICEORDERS, XFORMS,
@@ -233,7 +233,7 @@ def write_ome_metadata(
     levels: Optional[int] = None,
     no_pool: Optional[int] = None,
     multiscales_type: str = "",
-    ome_version: Literal["0.4", "0.5"] = "0.4"
+    ome_version: Literal["0.5", "0.6"] = "0.6"
 ) -> None:
     """
     Write OME metadata into Zarr.
@@ -361,19 +361,106 @@ def write_ome_metadata(
     ms["coordinateTransformations"] = [{"type":"scale", "scale": tscale}]
 
     # 9) Write into Zarr attributes
-    if ome_version == "0.4":
-        ms["version"] = ome_version
-        omz.attrs["multiscales"] = [ms]
-    elif ome_version == "0.5":
+    if ome_version == "0.5":
+        warnings.warn(
+            "Writing OME-Zarr 0.5 will be deprecated in a future release; "
+            "use ome_version='0.6'.", FutureWarning, stacklevel=2)
         omz.attrs["ome"] = {"version": ome_version, "multiscales": [ms]}
+    elif ome_version == "0.6":
+        omz.attrs["ome"] = _ome_v05_to_v06({"multiscales": [ms]})
     else:
         raise ValueError(f"Unsupported ome_version {ome_version}")
+
+
+def _ome_v05_to_v06(ome: dict, cs_name: str = "intrinsic") -> dict:
+    """Upgrade 0.5-style multiscales to OME-Zarr 0.6 (RFC-5).
+
+    Axes move into an "intrinsic" coordinate system; each dataset gets one
+    typed transform (a scale, or a sequence of scale then translation) with
+    explicit input/output, with the multiscale-level scale folded in.
+    """
+    multiscales = []
+    for ms in ome["multiscales"]:
+        top = [1.0] * len(ms["axes"])
+        for trf in ms.get("coordinateTransformations", []):
+            top = [a * b for a, b in zip(top, trf["scale"])]
+        datasets = []
+        for ds in ms["datasets"]:
+            trf = {t["type"]: t for t in ds["coordinateTransformations"]}
+            scale = [a * b for a, b in zip(top, trf["scale"]["scale"])]
+            shift = trf.get("translation", {}).get("translation", [0.0] * len(top))
+            shift = [a * b for a, b in zip(top, shift)]
+            io = {"input": {"path": ds["path"]}, "output": {"name": cs_name}}
+            if any(shift):
+                trf = {"type": "sequence", **io, "transformations": [
+                    {"type": "scale", "scale": scale},
+                    {"type": "translation", "translation": shift}]}
+            else:
+                trf = {"type": "scale", "scale": scale, **io}
+            datasets.append({"path": ds["path"], "coordinateTransformations": [trf]})
+        new = {k: v for k, v in ms.items()
+               if k not in ("axes", "datasets", "coordinateTransformations", "version")}
+        new["coordinateSystems"] = [{"name": cs_name, "axes": ms["axes"]}]
+        new["datasets"] = datasets
+        multiscales.append(new)
+    return {"version": "0.6", "multiscales": multiscales}
+
+
+def _add_nifti_systems(ome: dict, header: Union[Nifti1Header, Nifti2Header]) -> dict:
+    """Describe the NIfTI qform/sform spaces as named coordinate systems.
+
+    Adds "nifti:qform" / "nifti:sform" (when their code is set), each with an
+    affine from the "intrinsic" system (scaled voxel grid, zarr axis order).
+    Spatial output axes are the world x, y, z in the intrinsic axis order;
+    other axes are passed through. Previous "nifti:*" entries are replaced.
+    """
+    ms = ome["multiscales"][0]
+    intrinsic = ms["coordinateSystems"][0]
+    axes = [a["name"] for a in intrinsic["axes"]]
+    level0 = ms["datasets"][0]["coordinateTransformations"][0]
+    scale = level0.get("scale") or level0["transformations"][0]["scale"]
+    world = {"x": 0, "y": 1, "z": 2}
+    n = len(axes)
+
+    systems = [cs for cs in ms["coordinateSystems"]
+               if not cs["name"].startswith("nifti:")]
+    transforms = [t for t in ms.get("coordinateTransformations", [])
+                  if not t["output"]["name"].startswith("nifti:")]
+    for kind, get in (("qform", header.get_qform), ("sform", header.get_sform)):
+        affine, code = get(coded=True)
+        if affine is None or not code:
+            continue
+        matrix = [[0.0] * (n + 1) for _ in range(n)]
+        for r, a in enumerate(axes):
+            if a not in world:
+                matrix[r][r] = 1.0
+                continue
+            for c, b in enumerate(axes):
+                if b in world:
+                    matrix[r][c] = float(affine[world[a], world[b]]) / scale[c]
+            matrix[r][n] = float(affine[world[a], 3])
+        systems.append({**intrinsic, "name": f"nifti:{kind}"})
+        transforms.append({"type": "affine", "affine": matrix,
+                           "input": {"name": intrinsic["name"]},
+                           "output": {"name": f"nifti:{kind}"}})
+    ms["coordinateSystems"] = systems
+    if transforms:
+        ms["coordinateTransformations"] = transforms
+    else:
+        ms.pop("coordinateTransformations", None)
+    return ome
+
 
 
 def write_nifti_header(
         omz: zarr.Group,
         header: Union[Nifti1Header, Nifti2Header]
 ) -> None:
+    ome = omz.attrs.get("ome", {})
+    if ome.get("version") == "0.6":
+        # describe the qform/sform spaces as OME coordinate systems
+        omz.attrs["ome"] = _add_nifti_systems(dict(ome), header)
+
     jsonheader = nii2json(header)
     # Write nifti header (binary)
     stream = io.BytesIO()
@@ -418,8 +505,8 @@ def nii2zarr(
         fill_value: Optional[Union[int, float, complex]] = None,
         compressor: Literal['blosc', 'zlib'] = 'blosc',
         compressor_options: dict = {},
-        zarr_version: Literal[2, 3] = 3,
-        ome_version: Literal["auto", "0.4", "0.5"] = "auto",
+        zarr_version: Literal[3] = 3,
+        ome_version: Literal["auto", "0.5", "0.6"] = "auto",
         validate: bool = False,
 ) -> None:
     """
@@ -470,12 +557,12 @@ def nii2zarr(
         Compression to use
     compressor_options : dict, optional
         Options for the compressor.
-    zarr_version : {2, 3}, optional
-        Zarr format version. Default: 3. Falls back to 2 if zarr-python < 3 is installed.
-    ome_version : {"auto", "0.4", "0.5"}, optional
-        OME-Zarr version. Default: "auto", which selects the most recent
-        version compatible with `zarr_version` ("0.5" for Zarr v3, "0.4" for
-        Zarr v2).
+    zarr_version : {3}, optional
+        Zarr format version. Only Zarr v3 is written (v2 can still be read).
+    ome_version : {"auto", "0.5", "0.6"}, optional
+        OME-Zarr version. Default: "auto" (currently "0.6"). Writing 0.5 will
+        be deprecated in a future release. With 0.6, the NIfTI qform/sform
+        spaces are described as coordinate systems.
     validate : bool, optional
         Validate the Zarr with the `ome-zarr-models` package.
 
@@ -484,30 +571,11 @@ def nii2zarr(
     None
     """
     # check conflicts in parameters
-    if pyzarr_version == 2 and zarr_version == 3:
-        warnings.warn(
-            "zarr-python < 3 is installed and cannot write Zarr v3; "
-            "falling back to Zarr v2. "
-            "Install zarr-python >= 3.0.0 to write Zarr v3.",
-            stacklevel=2,
-        )
-        zarr_version = 2
-
+    if zarr_version != 3:
+        raise ValueError("Writing Zarr v2 is no longer supported "
+                         "(reading it still is).")
     if ome_version == "auto":
-        ome_version = "0.5" if zarr_version == 3 else "0.4"
-    elif ome_version == "0.5" and zarr_version == 2:
-        warnings.warn(
-            "OME v0.5 is designed for Zarr v3, but Zarr v2 was requested.",
-            stacklevel=2,
-        )
-    elif ome_version == "0.4" and zarr_version == 3:
-        warnings.warn(
-            "OME v0.4 is designed for Zarr v2, but Zarr v3 was requested.",
-            stacklevel=2,
-        )
-
-    if shard and zarr_version == 2:
-        raise ValueError("Sharding is only supported in zarr version 3")
+        ome_version = "0.6"
 
     # Open nifti image with nibabel
     if not isinstance(inp, (Nifti1Image, Nifti2Image)):
@@ -516,7 +584,7 @@ def nii2zarr(
         else:
             inp = nib.load(inp)
 
-    out = _open_zarr(out, zarr_version=zarr_version)
+    out = _open_zarr(out, zarr_format=3)
 
     # If the no_time option is used:
     # - if the 4-th dimension is a singleton, we assume it is the time
@@ -633,7 +701,7 @@ def nii2zarr(
         data_type = byteorder + data_type
 
     # Prepare array metadata at each level
-    compressor = _make_compressor(compressor, zarr_version=zarr_version,
+    compressor = _make_compressor(compressor,
                                   **compressor_options)
 
     chunk = tuple(chunk) if isinstance(chunk, (list, tuple)) else (chunk,)
@@ -649,6 +717,10 @@ def nii2zarr(
         'compressors': compressor,
         'dimension_names': axes,
     }
+    if isinstance(data_type, str) and data_type[0] in "<>":
+        # keep the NIfTI byte order on disk
+        endian = "little" if data_type[0] == "<" else "big"
+        opts['serializer'] = zarr.codecs.BytesCodec(endian=endian)
 
     if shard:
         shard = tuple(shard) if isinstance(shard, (list, tuple)) else (shard,)
@@ -756,14 +828,9 @@ def cli(args=None):
         '--no-pyramid-axis', choices=('x', 'y', 'z'),
         help='Thick slice axis that should not be downsampled.')
     parser.add_argument(
-        '--zarr-version', type=int, default=3, choices=(2, 3),
-        help='Zarr format version. Falls back to 2 if zarr-python < 3 '
-             'is installed.')
-    parser.add_argument(
-        '--ome-version', type=str, default="auto", choices=("auto", "0.4", "0.5"),
-        help='OME-Zarr specification version. Default "auto" selects the most '
-             'recent version compatible with --zarr-version ("0.5" for v3, '
-             '"0.4" for v2).')
+        '--ome-version', type=str, default="auto", choices=("auto", "0.5", "0.6"),
+        help='OME-Zarr specification version. Default "auto" (currently '
+             '"0.6"); writing 0.5 will be deprecated in a future release.')
     parser.add_argument(
         '--validate', action='store_true',
         help='Validate the Zarr with the `ome-zarr-models` package.')
@@ -790,7 +857,6 @@ def cli(args=None):
         label=args.label,
         no_time=args.no_time,
         no_pyramid_axis=args.no_pyramid_axis,
-        zarr_version=args.zarr_version,
         ome_version=args.ome_version,
         validate=args.validate,
     )

@@ -17,6 +17,28 @@ from ._header import bin2nii, get_nibabel_klass
 from ._units import convert_unit, ome_valid_units
 
 
+def _as_v05(multiscales):
+    """Present OME-Zarr 0.6 multiscales in the 0.4/0.5 layout used here.
+
+    0.6 (RFC-5) moves `axes` into named `coordinateSystems` and allows
+    dataset transforms to be a `sequence`; flatten both.
+    """
+    if not multiscales or "coordinateSystems" not in multiscales[0]:
+        return multiscales
+    out = []
+    for ms in multiscales:
+        systems = {cs["name"]: cs for cs in ms["coordinateSystems"]}
+        target = ms["datasets"][0]["coordinateTransformations"][0]["output"]["name"]
+        datasets = []
+        for ds in ms["datasets"]:
+            trfs = []
+            for trf in ds["coordinateTransformations"]:
+                trfs += trf["transformations"] if trf["type"] == "sequence" else [trf]
+            datasets.append({**ds, "coordinateTransformations": trfs})
+        out.append({**ms, "axes": systems[target]["axes"], "datasets": datasets})
+    return out
+
+
 def _ome2affine(ome, level=0):
     names = [axis["name"] for axis in ome[0]["axes"]]
     units = [axis.get("unit", None) for axis in ome[0]["axes"]]
@@ -77,6 +99,7 @@ def default_nifti_header(inp0: zarr.Array, ome: dict) -> Union[Nifti1Header, Nif
     else:
         NiftiHeader = Nifti1Header
     niiheader = NiftiHeader()
+    ome = _as_v05(ome)
     if ome:
         affine = _ome2affine(ome)
 
@@ -147,7 +170,7 @@ def zarr2nii(
     # ----------------
 
     # Get OME metadata (if exists)
-    ome = inp.attrs.get("ome", inp.attrs).get("multiscales", None)
+    ome = _as_v05(inp.attrs.get("ome", inp.attrs).get("multiscales", None))
 
     # Compute number of levels
     if isinstance(inp, zarr.Group):

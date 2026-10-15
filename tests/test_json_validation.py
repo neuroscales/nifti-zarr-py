@@ -31,13 +31,11 @@ class TestJSONValidation(unittest.TestCase):
                     niizarr.nii2zarr(
                         data,
                         zarr_file,
-                        zarr_version=2,
-                        ome_version="0.4",
                     )
 
-                    json_file = op.join(zarr_file, "nifti/.zattrs")
+                    json_file = op.join(zarr_file, "nifti/zarr.json")
                     with open(json_file) as f:
-                        json_obj = json.load(f)
+                        json_obj = json.load(f)["attributes"]
 
                     try:
                         validate(json_obj, self.schema)

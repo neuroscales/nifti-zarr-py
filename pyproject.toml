@@ -11,9 +11,9 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Intended Audience :: Science/Research",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 dependencies = [
-    "zarr >= 2",
+    "zarr >= 3.4",
     "nibabel >= 3",
     "dask[array] >= 2020",
     "numpy >= 1.18",
