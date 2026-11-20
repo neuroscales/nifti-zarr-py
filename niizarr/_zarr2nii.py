@@ -149,7 +149,7 @@ def zarr2nii(
     Parameters
     ----------
     inp : zarr.Store | zarr.Group | zarr.Array | path
-        Output zarr object
+        Input zarr object/path.
     out : path or file_like, optional
         Path to output file. If not provided, do not write a file.
     level : int
@@ -159,7 +159,7 @@ def zarr2nii(
 
     Returns
     -------
-    out : nib.Nifti1Image
+    out : Nifti1Image | Nifti2Image
         Mapped output file _or_ Nifti object whose dataobj is a dask array
     """
 
