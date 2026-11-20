@@ -42,7 +42,6 @@ jobs:
           path: site
 
   deploy:
-    # Only the upstream repository publishes; forks and pull requests just build.
     if: >-
       github.repository == 'neuroscales/nifti-zarr-py'
       && github.event_name != 'pull_request'

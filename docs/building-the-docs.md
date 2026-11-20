@@ -53,3 +53,7 @@ extension, so they stay the single source of truth.
 The `Docs` GitHub Actions workflow (`.github/workflows/docs.yml`) builds the
 site on every pull request, and publishes it to GitHub Pages at
 <https://nifti-zarr.lincbrain.org> on every push to `main`.
+
+Only the upstream repository,
+[neuroscales/nifti-zarr-py](https://github.com/neuroscales/nifti-zarr-py),
+publishes the site. Forks and pull requests only build it.
