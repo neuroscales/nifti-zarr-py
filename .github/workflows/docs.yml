@@ -1,0 +1,63 @@
+name: Docs
+
+# Build the documentation site on every pull request, and publish it to
+# GitHub Pages (https://nifti-zarr.lincbrain.org) on pushes to main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          # The specification is rendered from the nifti-zarr-schema submodule.
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install documentation dependencies
+        run: |
+          python -m pip install -U pip
+          python -m pip install --group docs
+
+      - name: Build site
+        run: zensical build --strict
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    # Only the upstream repository publishes; forks and pull requests just build.
+    if: >-
+      github.repository == 'neuroscales/nifti-zarr-py'
+      && github.event_name != 'pull_request'
+      && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
