@@ -1,5 +1,3 @@
-# See docs/building-the-docs.md for how to build and preview this site.
-
 site_name: NIfTI-Zarr
 site_description: >-
   NIfTI-Zarr: a cloud-friendly, multi-resolution format for neuroimaging
