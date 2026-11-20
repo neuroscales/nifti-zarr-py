@@ -71,8 +71,6 @@ markdown_extensions:
       callouts: true
   - pymdownx.snippets:
       base_path: [.]
-      # Fail the build if an included file is missing, e.g. when the
-      # nifti-zarr-schema submodule has not been checked out.
       check_paths: true
   - pymdownx.superfences
   - pymdownx.tilde
