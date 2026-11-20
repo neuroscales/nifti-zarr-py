@@ -44,6 +44,10 @@ files in `docs/`:
 | JSON schema | `nifti-zarr-schema/nifti-zarr-schema-1.0.rc1.json` |
 | API reference | Docstrings in the `niizarr` package |
 
+The Specification and JSON schema pages are rendered from the
+[neuroscales/nifti-zarr](https://github.com/neuroscales/nifti-zarr)
+repository, which is included here as the `nifti-zarr-schema` submodule.
+
 The READMEs and the schema are included with the
 [`pymdownx.snippets`](https://facelessuser.github.io/pymdown-extensions/extensions/snippets/)
 extension, so they stay the single source of truth.
