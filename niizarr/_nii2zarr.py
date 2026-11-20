@@ -514,7 +514,7 @@ def nii2zarr(
 
     Parameters
     ----------
-    inp : Nifti1Image | Nifti12mage | file-like
+    inp : Nifti1Image | Nifti2Image | file-like
         Input nifti image.
     out : zarr.Store, zarr.Group or path
         Output zarr object/path.
