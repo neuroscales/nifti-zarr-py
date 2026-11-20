@@ -31,7 +31,15 @@ validate = ["ome-zarr-models>=1.3"]
 
 [project.urls]
 Homepage = "https://github.com/neuroscales/nifti-zarr-py"
+Documentation = "https://nifti-zarr.lincbrain.org"
 Issues = "https://github.com/neuroscales/nifti-zarr-py/issues"
+
+[dependency-groups]
+docs = [
+    "zensical ~= 0.1.3",
+    "mkdocstrings-python >= 2.0",
+    "ruff",
+]
 
 [project.scripts]
 nii2zarr = "niizarr._nii2zarr:cli"

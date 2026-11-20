@@ -1,0 +1,1 @@
+--8<-- "nifti-zarr-schema/README.md"
