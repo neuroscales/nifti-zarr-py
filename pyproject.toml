@@ -39,7 +39,7 @@ Issues = "https://github.com/neuroscales/nifti-zarr-py/issues"
 docs = [
     "zensical ~= 0.1.3",
     "mkdocstrings-python >= 2.0",
-    "ruff",  # used by mkdocstrings to format long signatures
+    "ruff",
 ]
 
 [project.scripts]
