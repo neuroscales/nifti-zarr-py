@@ -1,7 +1,7 @@
 site_name: NIfTI-Zarr
 site_description: >-
-  NIfTI-Zarr: a cloud-friendly, multi-resolution format for neuroimaging
-  data, and its reference Python implementation.
+  NIfTI-Zarr: Specification for storing NIfTI images in Zarr, and its
+  reference Python implementation.
 site_url: https://nifti-zarr.lincbrain.org/
 repo_url: https://github.com/neuroscales/nifti-zarr-py
 repo_name: neuroscales/nifti-zarr-py
