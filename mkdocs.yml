@@ -23,6 +23,7 @@ nav:
   - Specification: specification.md
   - JSON schema: schema.md
   - API reference: api.md
+  - Building the docs: building-the-docs.md
 
 theme:
   name: material

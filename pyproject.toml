@@ -35,7 +35,6 @@ Documentation = "https://nifti-zarr.lincbrain.org"
 Issues = "https://github.com/neuroscales/nifti-zarr-py/issues"
 
 [dependency-groups]
-# Install with `pip install --group docs` (pip >= 25.1); see mkdocs.yml.
 docs = [
     "zensical ~= 0.1.3",
     "mkdocstrings-python >= 2.0",
