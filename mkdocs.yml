@@ -63,8 +63,6 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
-  - pymdownx.arithmatex:
-      generic: true
   - pymdownx.betterem
   - pymdownx.details
   - pymdownx.highlight:
@@ -81,11 +79,3 @@ markdown_extensions:
       check_paths: true
   - pymdownx.superfences
   - pymdownx.tilde
-
-extra_javascript:
-  - javascripts/katex.js
-  - https://cdn.jsdelivr.net/npm/katex@0.16.29/dist/katex.min.js
-  - https://cdn.jsdelivr.net/npm/katex@0.16.29/dist/contrib/auto-render.min.js
-
-extra_css:
-  - https://cdn.jsdelivr.net/npm/katex@0.16.29/dist/katex.min.css
