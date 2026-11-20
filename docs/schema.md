@@ -22,7 +22,7 @@ header = dict(zarr.open_group("path/to/mri.nii.zarr", mode="r")["nifti"].attrs)
 jsonschema.validate(header, schema)
 ```
 
-## Schema v1.0.rc1
+## Schema
 
 ```json title="nifti-zarr-schema-1.0.rc1.json"
 --8<-- "nifti-zarr-schema/nifti-zarr-schema-1.0.rc1.json"
