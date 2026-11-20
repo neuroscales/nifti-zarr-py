@@ -57,8 +57,6 @@ markdown_extensions:
   - admonition
   - attr_list
   - md_in_html
-  # Honour ordered-list start numbers (the specification's table of
-  # contents starts at 0).
   - sane_lists
   - tables
   - toc:
