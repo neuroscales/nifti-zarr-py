@@ -50,5 +50,6 @@ extension, so they stay the single source of truth.
 
 ## Publishing
 
-The `Docs` GitHub Actions workflow builds the site on every pull request and
-publishes it to <https://nifti-zarr.lincbrain.org> on every push to `main`.
+The `Docs` GitHub Actions workflow (`.github/workflows/docs.yml`) builds the
+site on every pull request, and publishes it to GitHub Pages at
+<https://nifti-zarr.lincbrain.org> on every push to `main`.

@@ -1,7 +1,5 @@
 name: Docs
 
-# Build the documentation site on every pull request, and publish it to
-# GitHub Pages (https://nifti-zarr.lincbrain.org) on pushes to main.
 on:
   push:
     branches: [main]
