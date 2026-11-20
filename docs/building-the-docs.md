@@ -1,8 +1,9 @@
 # Building the docs
 
-This site is built with [Zensical](https://zensical.org) from the
+This site is built with [Zensical](https://zensical.org), which reads the
 `mkdocs.yml` file at the root of the
-[nifti-zarr-py](https://github.com/neuroscales/nifti-zarr-py) repository.
+[nifti-zarr-py](https://github.com/neuroscales/nifti-zarr-py) repository
+natively.
 
 ## Preview locally
 
@@ -42,6 +43,10 @@ files in `docs/`:
 | Specification | `nifti-zarr-schema/README.md` ([neuroscales/nifti-zarr](https://github.com/neuroscales/nifti-zarr)) |
 | JSON schema | `nifti-zarr-schema/nifti-zarr-schema-1.0.rc1.json` |
 | API reference | Docstrings in the `niizarr` package |
+
+The READMEs and the schema are included with the
+[`pymdownx.snippets`](https://facelessuser.github.io/pymdown-extensions/extensions/snippets/)
+extension, so they stay the single source of truth.
 
 ## Publishing
 

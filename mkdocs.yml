@@ -1,14 +1,4 @@
-# Documentation site for nifti-zarr-py, built with Zensical
-# (https://zensical.org), which reads this mkdocs.yml natively.
-#
-#   pip install --group docs     # needs pip >= 25.1
-#   git submodule update --init  # the specification lives in a submodule
-#   zensical serve               # live preview at http://localhost:8000
-#   zensical build --strict      # static site in ./site
-#
-# The page content is pulled from the two READMEs (this repository and the
-# nifti-zarr-schema submodule) with pymdownx.snippets, so the READMEs stay
-# the single source of truth.
+# See docs/building-the-docs.md for how to build and preview this site.
 
 site_name: NIfTI-Zarr
 site_description: >-
