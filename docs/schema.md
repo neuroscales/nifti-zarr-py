@@ -3,7 +3,7 @@
 The JSON variant of the NIfTI header, stored in the attributes of the
 `nifti` array (see [section 2.4 of the specification](specification.md#24-nifti-header)),
 is described by the JSON schema below. Its canonical location is
-<https://raw.githubusercontent.com/neuroscales/nifti-zarr/main/nifti-zarr-schema-1.0.rc1.json>.
+<https://github.com/neuroscales/nifti-zarr/blob/main/nifti-zarr-schema-1.0.rc1.json>.
 
 To validate the JSON header of a NIfTI-Zarr file:
 
